@@ -9,7 +9,7 @@ pybamm = pyimport("pybamm")
 np = pyimport("numpy")
 
 # load model
-model = pybamm.lithium_ion.SPMe(name="SPMe")
+model = pybamm.lithium_ion.SPM(name="SPM")
 
 parameter_values = model.default_parameter_values
 parameter_values.update(
@@ -92,9 +92,7 @@ eval(Meta.parse(V_str))
 
 V = Array{Float64}(undef, length(sol.t))
 out = [0.0]
-@btime V!(out, sol.u[1], p, sol.t[1])
 for idx in 1:length(sol.t)
-    out = [0.0]
     V!(out, sol.u[idx], p, sol.t[idx])
     V[idx] = out[1]
 end
