@@ -3,6 +3,7 @@
 # A lot of this could eventually be converted into functions in PyBaMM.jl
 #
 
+using PyBaMM
 using PyCall
 
 pybamm = pyimport("pybamm")
@@ -23,8 +24,14 @@ len_rhs = convert(Int, sim.built_model.len_rhs)
 len_alg = convert(Int, sim.built_model.len_alg)
 differential_vars = vcat(ones(len_rhs), zeros(len_alg))
 
-u0 = Array{Float64}(undef, len_rhs + len_alg)
-DFN_u0!(u0, [])
+# Solve in python
+sol_pybamm = sim.solve(np.linspace(0,3600,100))
+V_pybamm = get(sol_pybamm, "Terminal voltage [V]").data
+
+u0 = sol_pybamm.y.full()[:,1]
+
+# u0 = Array{Float64}(undef, len_rhs + len_alg)
+# DFN_u0!(u0, [])
 du0 = zeros(size(u0))
 out = Array{Float64}(undef, size(u0))
 
@@ -61,7 +68,7 @@ for idx in 1:length(sol.t)
 end
 
 # Solve in python
-sol_pybamm = sim.solve(np.linspace(0,3600,100))
+sol_pybamm = sim.solve(sol.t * sim.built_model.timescale.evaluate())
 V_pybamm = get(sol_pybamm, "Terminal voltage [V]").data
 
 # Plots

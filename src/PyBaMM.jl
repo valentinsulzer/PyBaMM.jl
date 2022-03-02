@@ -1,14 +1,13 @@
 module PyBaMM
 
+using GeneralizedGenerated
+using LinearAlgebra, SparseArrays
 using PyCall
 
-py"""
-import pybamm
-import numpy as np
-"""
+include("simulations.jl")
+export get_ode_problem
 
 include("variables.jl")
-
 export get_variable
 
 end # module
