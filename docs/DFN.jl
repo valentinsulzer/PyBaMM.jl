@@ -1,6 +1,5 @@
 #
-# Create and discretize the SPMe in pybamm, convert it to a format Julia DiffEq likes, and solve
-# A lot of this could eventually be converted into functions in PyBaMM.jl
+# DFN (work in progress)
 #
 
 using PyBaMM

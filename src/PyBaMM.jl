@@ -8,6 +8,6 @@ include("simulations.jl")
 export get_ode_problem
 
 include("variables.jl")
-export get_variable
+export get_variable, get_l2loss_function
 
 end # module

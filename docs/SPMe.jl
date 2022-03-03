@@ -1,14 +1,12 @@
 #
-# Create and discretize the SPMe in pybamm, convert it to a format Julia DiffEq likes, and solve
-# A lot of this could eventually be converted into functions in PyBaMM.jl
+# Solving the SPMe and comparison with the PyBaMM solution
 #
 
 using PyBaMM
-using PyCall
-
-pybamm = pyimport("pybamm")
+using SparseArrays, LinearAlgebra
 
 # load model
+pybamm = pyimport("pybamm")
 model = pybamm.lithium_ion.SPMe(name="SPMe")
 sim = pybamm.Simulation(model)
 
