@@ -13,12 +13,20 @@ For example, in Linux/Julia do
 pip install git+https://github.com/pybamm-team/pybamm.git@issue-1129-julia
 ```
 
-use the following:
-
+To install the package from source, clone the GitHub repo, then activate:
 ```julia
-Pkg.clone("https://github.com/tinosulzer/PyBaMM.jl")
+] activate .
+```
+
+To install as a Julia package:
+```julia
+] add "https://github.com/tinosulzer/PyBaMM.jl"
 ```
 
 ## Using PyBaMM.jl
 
-See examples in docs folder
+See examples in docs folder.
+
+The link from PyBaMM to PyBaMM.jl is one-way and one-time. 
+PyBaMM is used to load a model (any PyBaMM model can be used) and parameter values, discretize the model in space, and generate Julia functions to represent the discretized model. From then on, we are entirely in Julia and can use all the tools from the `SciML` ecosystem without having slow calls back to Python.
+
