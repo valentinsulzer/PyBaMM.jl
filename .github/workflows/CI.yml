@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: 3.9
       - name: Install PyBaMM
-        run: pip install wheel git+https://github.com/pybamm-team/pybamm.git@issue-1129-julia
+        run: pip install wheel; pip install git+https://github.com/pybamm-team/pybamm.git@issue-1129-julia
       - name: Install Julia
         uses: julia-actions/setup-julia@v1
         with:
