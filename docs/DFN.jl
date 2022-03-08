@@ -4,6 +4,7 @@
 
 using PyBaMM
 using PyCall
+using SparseArrays, LinearAlgebra
 
 pybamm = pyimport("pybamm")
 np = pyimport("numpy")
@@ -14,7 +15,7 @@ model = pybamm.lithium_ion.DFN(name="DFN")
 sim = pybamm.Simulation(model)
 sim.build()
 
-rhs_str, u0_str = sim.built_model.generate_julia_diffeq()
+rhs_str, u0_str = sim.built_model.generate_julia_diffeq(dae_type="implicit")
 
 eval(Meta.parse(rhs_str))
 eval(Meta.parse(u0_str))
@@ -38,7 +39,6 @@ using BenchmarkTools
 # Check that function is not allocating
 @btime DFN!(out, du0, u0, 0, 0)
 
-
 # Solve in Julia
 using OrdinaryDiffEq
 
@@ -56,15 +56,7 @@ sol.u
 @btime solve(prob, IDA());
 
 # Calculate voltage in Julia
-V_str = pybamm.get_julia_function(sim.built_model.variables["Terminal voltage [V]"], funcname="V")#, input_parameter_order=input_parameter_order)
-eval(Meta.parse(V_str))
-
-V = Array{Float64}(undef, length(sol.t))
-out = [0.0]
-for idx in 1:length(sol.t)
-    V!(out, sol.u[idx], [], sol.t[idx])
-    V[idx] = out[1]
-end
+V = get_variable(sim, sol, "Terminal voltage [V]")
 
 # Solve in python
 sol_pybamm = sim.solve(sol.t * sim.built_model.timescale.evaluate())

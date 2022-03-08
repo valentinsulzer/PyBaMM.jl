@@ -2,7 +2,6 @@
 # Functions to extract and evaluate variables from a simulation solution
 #
 using OrdinaryDiffEq
-using SparseArrays, LinearAlgebra
 
 function get_ode_problem(sim, tend, inputs)
     

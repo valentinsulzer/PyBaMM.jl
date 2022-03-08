@@ -4,6 +4,7 @@
 
 using PyBaMM
 using SparseArrays, LinearAlgebra
+using PyCall
 
 # load model
 pybamm = pyimport("pybamm")
