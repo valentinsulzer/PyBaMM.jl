@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - main
+      - build_pybamm
 jobs:
   test:
     runs-on: ubuntu-latest
