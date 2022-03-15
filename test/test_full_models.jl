@@ -2,14 +2,13 @@ using Test
 using PyBaMM
 using SparseArrays, LinearAlgebra
 using Sundials
-using Plots
 using PyCall
 
 pybamm = pyimport("pybamm")
 
 @testset "Compare with PyBaMM: SPM" begin
     # load model
-    model = pybamm.lithium_ion.SPMe(name="SPM")
+    model = pybamm.lithium_ion.SPM(name="SPM")
     sim = pybamm.Simulation(model)
 
     prob = get_ode_problem(sim)
@@ -23,7 +22,7 @@ pybamm = pyimport("pybamm")
     # Solve in python
     sol_pybamm = sim.solve(t)
     V_pybamm = get(sol_pybamm, "Terminal voltage [V]").data
-    @test all(isapprox.(V_pybamm, V, atol=1e-4))
+    @test all(isapprox.(V_pybamm, V, atol=1e-3))
 end
 
 @testset "Compare with PyBaMM: SPMe" begin

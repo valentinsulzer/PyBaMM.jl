@@ -31,7 +31,6 @@ function get_ode_problem(sim, tend, inputs)
 end
 
 # Defaults
-
 get_ode_problem(sim, tend::Real) = get_ode_problem(sim, tend, nothing)
 get_ode_problem(sim, inputs::AbstractDict) = get_ode_problem(sim, 3600, inputs)
 get_ode_problem(sim) = get_ode_problem(sim, 3600, nothing)
