@@ -1,0 +1,39 @@
+[deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
+DiffEqParamEstim = "1130ab10-4a5a-5621-a13d-e4788d82bd4c"
+GeneralizedGenerated = "6b9d7cbe-bcb9-11e9-073f-15a7a543e2eb"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Optim = "429524aa-4258-5aef-a3af-852621145aeb"
+OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
+OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
+RuntimeGeneratedFunctions = "7e49a35a-f44a-4d26-94aa-eba1b4ca6b47"
+SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+Sundials = "c3572dad-4567-51f8-b174-8c6c989267f4"
+
+[compat]
+julia = "1.7"
+RuntimeGeneratedFunctions = "0.5"
+DataStructures = "0.18"
+OrdinaryDiffEq = "6"
+Plots = "1"
+PyCall = "1"
+OrderedCollections = "1"
+Optim = "1"
+BenchmarkTools = "1"
+Sundials = "4"
+SafeTestsets = "0.0.1"
+RecursiveArrayTools = "2"
+GeneralizedGenerated = "0.3"
+DiffEqParamEstim = "1"
+
+[extras]
+CPUSummary = "2a0fbf3d-bb9c-48f3-b0a9-814d99fd7ab9"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
