@@ -18,6 +18,7 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
 BenchmarkTools = "1"
+Conda = "1"
 DataStructures = "0.18"
 DiffEqParamEstim = "1"
 GeneralizedGenerated = "0.3"
