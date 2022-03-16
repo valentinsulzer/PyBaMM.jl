@@ -30,7 +30,7 @@ prob = get_ode_problem(sim, inputs)
 # Generate data
 using Sundials
 sol = solve(prob, CVODE_BDF(linear_solver=:Band,jac_upper=1,jac_lower=1), reltol=1e-6, abstol=1e-6, saveat=prob.tspan[2] / 100);
-V_data = get_variable(sim, sol, "Terminal voltage [V]", inputs) + 0.005*randn(size(V_data))
+V_data = get_variable(sim, sol, "Terminal voltage [V]", inputs) + 0.005*randn(size(sol.t))
 t = get_variable(sim, sol, "Time [s]")
 
 using Plots
@@ -43,6 +43,9 @@ loss = get_l2loss_function(sim, "Terminal voltage [V]", inputs, V_data)
 cost_function = build_loss_objective(prob,CVODE_BDF(linear_solver=:Band,jac_upper=1,jac_lower=1),loss,
                                      maxiters=10000,verbose=true,saveat=sol.t)
                                  
+using BenchmarkTools
+@btime loss(sol)
+@btime get_variable(sim, sol, "Terminal voltage [V]", inputs)
 # Sanity check: plot 1-parameter cost function
 vals = 0.1:0.01:0.8
 cost = [cost_function([0.4,i]) for i in vals]
