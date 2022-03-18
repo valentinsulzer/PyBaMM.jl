@@ -7,7 +7,6 @@ function get_variable(sim, sol, var_name::String, inputs)
     p = isnothing(inputs) ? nothing : collect(values(inputs))
 
     # Generate the function using PyBaMM
-    pybamm = pyimport("pybamm")
     var_str = pybamm.get_julia_function(
         sim.built_model.variables[var_name],
         funcname="var_func",
@@ -34,7 +33,6 @@ function get_l2loss_function(sim, var_name, inputs, data)
     p = isnothing(inputs) ? nothing : collect(values(inputs))
 
     # Generate the function using PyBaMM
-    pybamm = pyimport("pybamm")
     var_str = pybamm.get_julia_function(
         sim.built_model.variables[var_name],
         funcname="var_func",

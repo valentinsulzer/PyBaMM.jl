@@ -4,6 +4,8 @@ using GeneralizedGenerated
 using LinearAlgebra, SparseArrays
 using PyCall
 
+const pybamm = pyimport("pybamm")
+
 include("simulations.jl")
 export get_ode_problem
 
