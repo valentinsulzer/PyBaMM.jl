@@ -1,7 +1,7 @@
 using PyBaMM
 using SparseArrays, LinearAlgebra
 using PyCall
-using DifferentialEquations
+using OrdinaryDiffEq
 using Test
 
 pybamm = pyimport("pybamm")

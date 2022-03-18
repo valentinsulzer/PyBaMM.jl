@@ -1,7 +1,7 @@
 #
 # Functions to handle pybamm event handling in julia
 #
-using DiffEqBase
+using OrdinaryDiffEq
 
 function build_callback(event,size)
     type = event.event_type.value
