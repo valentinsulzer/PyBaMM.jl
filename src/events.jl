@@ -11,10 +11,6 @@ function build_callback(event,size)
     end
     if type==0
         jl_event = build_terminating_callback(event,size)
-    elseif type==1
-        jl_event = build_discontinuity_callback(event)
-    elseif type==2
-        jl_event = build_interpolant_extrapolation_callback(event)
     elseif type==3
         jl_event = build_terminating_callback(event,size)
     else
@@ -28,9 +24,6 @@ function build_terminating_callback(event,size)
     jl_str = pybamm.get_julia_function(event.expression)
     jl_func! = runtime_eval(Meta.parse(jl_str))
     #Generate Condition for Callback
-    
-    
-    
     f = begin
     f2 = let cs = (
         cache_du = zeros(size),
