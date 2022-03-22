@@ -32,7 +32,7 @@ function _problem_setup(sim, tend, inputs)
 
     # Create callbacks
     ncb = length(u0)
-    callbacks = [cb = build_callback(event) for event in sim.built_model.events]
+    callbacks = [build_callback(event,ncb) for event in sim.built_model.events]
     callbacks = callbacks[findall(.!isnothing.(callbacks))]
     callbackSet = CallbackSet(callbacks...)
 
