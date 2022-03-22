@@ -28,15 +28,23 @@ function _problem_setup(sim, tend, inputs)
     # Scale the time
     tau = sim.built_model.timescale.evaluate()
     tspan = (0, tend/tau)
-    sim_fn!, u0, tspan, p
+    
+
+    # Create callbacks
+    ncb = length(u0)
+    callbacks = [cb = build_callback(event) for event in sim.built_model.events]
+    callbacks = callbacks[findall(.!isnothing.(callbacks))]
+    callbackSet = CallbackSet(callbacks...)
+
+    sim_fn!, u0, tspan, p, callbackSet
 end
 
 function get_ode_problem(sim, tend, inputs)
-    sim_fn!, u0, tspan, p = _problem_setup(sim, tend, inputs)
+    sim_fn!, u0, tspan, p, callbackSet = _problem_setup(sim, tend, inputs)
     
     # Create problem, isinplace is explicitly true as cannot be inferred from
     # runtime_eval function
-    ODEProblem{true}(sim_fn!, u0, tspan, p)
+    ODEProblem{true}(sim_fn!, u0, tspan, p),callbackSet
 end
 
 # Defaults
@@ -45,7 +53,7 @@ get_ode_problem(sim, inputs::AbstractDict) = get_ode_problem(sim, 3600, inputs)
 get_ode_problem(sim) = get_ode_problem(sim, 3600, nothing)
 
 function get_dae_problem(sim, tend, inputs)
-    sim_fn!, u0, tspan, p = _problem_setup(sim, tend, inputs)
+    sim_fn!, u0, tspan, p, callbackSet = _problem_setup(sim, tend, inputs)
     
     # Create vector of 1s and 0s to indicate differential and algebraic variables
     len_rhs = convert(Int, sim.built_model.len_rhs)
@@ -56,7 +64,7 @@ function get_dae_problem(sim, tend, inputs)
     # Create problem, isinplace is explicitly true as cannot be inferred from
     # runtime_eval function
     du0 = zeros(size(u0))
-    DAEProblem{true}(sim_fn!, du0, u0, tspan, p, differential_vars=differential_vars)
+    DAEProblem{true}(sim_fn!, du0, u0, tspan, p, differential_vars=differential_vars),callbackSet
 end
 
 # Defaults
