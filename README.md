@@ -7,11 +7,11 @@ It uses the [PyCall.jl](https://github.com/JuliaPy/PyCall.jl) interop in order t
 
 If you're using MacOS or Windows and have PyCall set to default settings, PyBaMM will be automatically installed when PyBaMM.jl is installed via Pkg. To automatically install PyBaMM on linux, just set ENV["PYTHON"]="", build PyCall.jl, and then rebuild PyBaMM.jl.
 
-If you want to bring your own python, or want to use the system Python on linux, you'll need to install your own PyBaMM. Since the PyBaMM/Julia integration is a WIP, this requires downloading a specific branch from git:
+If you want to bring your own python, or want to use the system Python on linux, you'll need to install your own PyBaMM. 
 For example, in Linux/Julia do
 
 ```bash
-pip install git+https://github.com/pybamm-team/pybamm.git@issue-1129-julia
+pip install pybamm
 ```
 
 To install the package from source, clone the GitHub repo, then activate:
