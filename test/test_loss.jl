@@ -25,7 +25,7 @@ pybamm = pyimport("pybamm")
     )
 
     # Build ODE problem
-    prob = get_ode_problem(sim, inputs)
+    prob,cbs = get_ode_problem(sim, inputs)
     t = prob.tspan[2] / 100
     # Generate data
     sol = solve(prob, CVODE_BDF(linear_solver=:Band,jac_upper=1,jac_lower=1), reltol=1e-6, abstol=1e-6, saveat=t);

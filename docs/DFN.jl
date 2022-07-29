@@ -13,7 +13,7 @@ np = pyimport("numpy")
 model = pybamm.lithium_ion.DFN(name="DFN")
 
 sim = pybamm.Simulation(model)
-prob = get_dae_problem(sim, 3600, nothing)
+prob,cbs = get_dae_problem(sim, 3600, nothing)
 
 using Sundials
 sol = solve(prob, IDA());#, reltol=1e-6, abstol=1e-6, saveat=tend / 100);
