@@ -11,7 +11,7 @@ pybamm = pyimport("pybamm")
 model = pybamm.lithium_ion.SPMe(name="SPMe")
 sim = pybamm.Simulation(model)
 
-prob = get_ode_problem(sim)
+prob,cbs = get_ode_problem(sim)
 
 using Sundials
 sol = solve(prob, CVODE_BDF(linear_solver=:Band,jac_upper=1,jac_lower=1), reltol=1e-6, abstol=1e-6, saveat=prob.tspan[2] / 100);

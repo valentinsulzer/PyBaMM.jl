@@ -25,7 +25,7 @@ inputs = OrderedDict{String,Float64}(
 )
 
 # Build ODE problem
-prob = get_ode_problem(sim, inputs)
+prob,cbs = get_ode_problem(sim, inputs)
 
 # Generate data
 using Sundials

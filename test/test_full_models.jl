@@ -11,7 +11,7 @@ pybamm = pyimport("pybamm")
     model = pybamm.lithium_ion.SPM(name="SPM")
     sim = pybamm.Simulation(model)
 
-    prob = get_ode_problem(sim)
+    prob,cbs = get_ode_problem(sim)
 
     sol = solve(prob, CVODE_BDF(), saveat=prob.tspan[2] / 100);
 
@@ -30,7 +30,7 @@ end
     model = pybamm.lithium_ion.SPMe(name="SPMe")
     sim = pybamm.Simulation(model)
 
-    prob = get_ode_problem(sim)
+    prob,cbs = get_ode_problem(sim)
 
     sol = solve(prob, CVODE_BDF(), saveat=prob.tspan[2] / 100);
 
@@ -49,7 +49,7 @@ end
     model = pybamm.lithium_ion.DFN(name="DFN")
     sim = pybamm.Simulation(model)
 
-    prob = get_dae_problem(sim)
+    prob,cbs = get_dae_problem(sim)
 
     sol = solve(prob, IDA(), saveat=prob.tspan[2] / 100);
 
