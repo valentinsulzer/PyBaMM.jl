@@ -86,7 +86,6 @@ function get_semiexplicit_dae_problem(sim, tend, inputs)
     
     # Create problem, isinplace is explicitly true as cannot be inferred from
     # runtime_eval function
-    du0 = zeros(size(u0))
     ODEProblem{true}(func!, u0, tspan, p),callbackSet
 end
 
