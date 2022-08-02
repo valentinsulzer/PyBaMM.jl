@@ -3,7 +3,7 @@
 #
 using OrdinaryDiffEq
 
-function _problem_setup(sim, tend, inputs)
+function _problem_setup(sim, tend, inputs;dae_type="implicit")
     pybamm = pyimport("pybamm")
     
     input_parameter_order = isnothing(inputs) ? nothing : collect(keys(inputs))
@@ -12,7 +12,7 @@ function _problem_setup(sim, tend, inputs)
     sim.build()
     fn_str, u0_str = sim.built_model.generate_julia_diffeq(
         input_parameter_order=input_parameter_order, 
-        dae_type="implicit", 
+        dae_type=dae_type, 
         get_consistent_ics_solver=pybamm.CasadiSolver()
     )
     
@@ -71,3 +71,26 @@ end
 get_dae_problem(sim, tend::Real) = get_dae_problem(sim, tend, nothing)
 get_dae_problem(sim, inputs::AbstractDict) = get_dae_problem(sim, 3600, inputs)
 get_dae_problem(sim) = get_dae_problem(sim, 3600, nothing)
+
+
+function get_semiexplicit_dae_problem(sim, tend, inputs)
+    sim_fn!, u0, tspan, p, callbackSet = _problem_setup(sim, tend, inputs,dae_type="semi-explicit")
+    
+    # Create vector of 1s and 0s to indicate differential and algebraic variables
+    len_rhs = convert(Int, sim.built_model.len_rhs)
+    len_alg = convert(Int, sim.built_model.len_alg)
+    differential_vars = vcat(ones(len_rhs), zeros(len_alg))
+    mass_matrix = diagm(differential_vars)
+    func! = ODEFunction{true,true}(sim_fn!, mass_matrix=mass_matrix)
+    
+    
+    # Create problem, isinplace is explicitly true as cannot be inferred from
+    # runtime_eval function
+    du0 = zeros(size(u0))
+    ODEProblem{true}(func!, u0, tspan, p),callbackSet
+end
+
+# Defaults
+get_semiexplicit_dae_problem(sim, tend::Real) = get_semiexplicit_dae_problem(sim, tend, nothing)
+get_semiexplicit_dae_problem(sim, inputs::AbstractDict) = get_semexplicit_dae_problem(sim, 3600, inputs)
+get_semiexplicit_dae_problem(sim) = get_semiexplicit_dae_problem(sim, 3600, nothing)

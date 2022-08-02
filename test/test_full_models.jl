@@ -3,6 +3,7 @@ using PyBaMM
 using SparseArrays, LinearAlgebra
 using Sundials
 using PyCall
+using OrdinaryDiffEq
 
 pybamm = pyimport("pybamm")
 
@@ -52,6 +53,26 @@ end
     prob,cbs = get_dae_problem(sim)
 
     sol = solve(prob, IDA(), saveat=prob.tspan[2] / 100);
+
+    # Calculate voltage in Julia
+    V = get_variable(sim, sol, "Terminal voltage [V]")
+    t = get_variable(sim, sol, "Time [s]")
+
+    # Solve in python
+    sol_pybamm = sim.solve(t)
+    V_pybamm = get(sol_pybamm, "Terminal voltage [V]").data
+    @test all(isapprox.(V_pybamm, V, atol=1e-3))
+end
+
+
+@testset "Compare with PyBaMM: Semi-Explicit DFN" begin
+    # load model
+    model = pybamm.lithium_ion.DFN(name="DFN")
+    sim = pybamm.Simulation(model)
+
+    prob,cbs = get_semiexplicit_dae_problem(sim)
+
+    sol = solve(prob, Rodas4(autodiff=false), saveat=prob.tspan[2] / 100,reltol=1e-10);
 
     # Calculate voltage in Julia
     V = get_variable(sim, sol, "Terminal voltage [V]")
