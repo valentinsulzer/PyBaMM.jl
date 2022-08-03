@@ -3,7 +3,7 @@
 #
 using OrdinaryDiffEq
 
-function _problem_setup(sim, tend, inputs)
+function _problem_setup(sim, tend, inputs;dae_type="implicit")
     pybamm = pyimport("pybamm")
     
     input_parameter_order = isnothing(inputs) ? nothing : collect(keys(inputs))
@@ -12,7 +12,7 @@ function _problem_setup(sim, tend, inputs)
     sim.build()
     fn_str, u0_str = sim.built_model.generate_julia_diffeq(
         input_parameter_order=input_parameter_order, 
-        dae_type="implicit", 
+        dae_type=dae_type, 
         get_consistent_ics_solver=pybamm.CasadiSolver()
     )
     
@@ -52,8 +52,8 @@ get_ode_problem(sim, tend::Real) = get_ode_problem(sim, tend, nothing)
 get_ode_problem(sim, inputs::AbstractDict) = get_ode_problem(sim, 3600, inputs)
 get_ode_problem(sim) = get_ode_problem(sim, 3600, nothing)
 
-function get_dae_problem(sim, tend, inputs)
-    sim_fn!, u0, tspan, p, callbackSet = _problem_setup(sim, tend, inputs)
+function get_dae_problem(sim, tend, inputs;dae_type="implicit")
+    sim_fn!, u0, tspan, p, callbackSet = _problem_setup(sim, tend, inputs,dae_type=dae_type)
     
     # Create vector of 1s and 0s to indicate differential and algebraic variables
     len_rhs = convert(Int, sim.built_model.len_rhs)
@@ -63,11 +63,20 @@ function get_dae_problem(sim, tend, inputs)
     
     # Create problem, isinplace is explicitly true as cannot be inferred from
     # runtime_eval function
-    du0 = zeros(size(u0))
-    DAEProblem{true}(sim_fn!, du0, u0, tspan, p, differential_vars=differential_vars),callbackSet
+    if dae_type == "implicit"
+        du0 = zeros(size(u0))
+        return DAEProblem{true}(sim_fn!, du0, u0, tspan, p, differential_vars=differential_vars),callbackSet
+    else
+        mass_matrix = diagm(differential_vars)
+        func! = ODEFunction{true,true}(sim_fn!, mass_matrix=mass_matrix)
+        # Create problem, isinplace is explicitly true as cannot be inferred from
+        # runtime_eval function
+        return ODEProblem{true}(func!, u0, tspan, p),callbackSet
+    end
+
 end
 
 # Defaults
-get_dae_problem(sim, tend::Real) = get_dae_problem(sim, tend, nothing)
-get_dae_problem(sim, inputs::AbstractDict) = get_dae_problem(sim, 3600, inputs)
-get_dae_problem(sim) = get_dae_problem(sim, 3600, nothing)
+get_dae_problem(sim, tend::Real;dae_type="implicit") = get_dae_problem(sim, tend, nothing,dae_type=dae_type)
+get_dae_problem(sim, inputs::AbstractDict;dae_type="implicit") = get_dae_problem(sim, 3600, inputs,dae_type=dae_type)
+get_dae_problem(sim;dae_type="implicit") = get_dae_problem(sim, 3600, nothing,dae_type=dae_type)
