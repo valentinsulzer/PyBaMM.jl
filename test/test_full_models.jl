@@ -70,7 +70,7 @@ end
     model = pybamm.lithium_ion.DFN(name="DFN")
     sim = pybamm.Simulation(model)
 
-    prob,cbs = get_semiexplicit_dae_problem(sim)
+    prob,cbs = get_dae_problem(sim,dae_type="semi-explicit")
 
     sol = solve(prob, Rodas4(autodiff=false), saveat=prob.tspan[2] / 100,reltol=1e-10);
 
