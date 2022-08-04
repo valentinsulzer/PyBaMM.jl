@@ -2,6 +2,8 @@ module PyBaMM
 
 using GeneralizedGenerated
 using LinearAlgebra, SparseArrays
+using Reexport
+@reexport using PreallocationTools
 using PyCall
 
 include("diffeq_problems.jl")

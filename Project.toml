@@ -4,13 +4,22 @@ authors = ["Valentin Sulzer <valentinsulzer@hotmail.com>"]
 version = "0.1.0"
 
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 GeneralizedGenerated = "6b9d7cbe-bcb9-11e9-073f-15a7a543e2eb"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+LinearSolve = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"
+MATLABPlots = "3496906c-a3e1-4a4f-8055-83ed9b3a7d55"
+ModelingToolkit = "961ee093-0014-501f-94e3-6117800e7a78"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+PProf = "e4faabce-9ead-11e9-39d9-4379958e3056"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+PreallocationTools = "d236fae5-4411-538c-8e31-a6e3d9e00b46"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+Sundials = "c3572dad-4567-51f8-b174-8c6c989267f4"
 
 [compat]
 GeneralizedGenerated = "0.3"
