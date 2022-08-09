@@ -1,10 +1,11 @@
 module PyBaMM
 
 using GeneralizedGenerated
-using LinearAlgebra, SparseArrays
 using Reexport
+using CUDA
+@reexport using LinearAlgebra, SparseArrays
 @reexport using Symbolics
-#@reexport using PreallocationTools
+@reexport using PreallocationTools
 using PyCall
 
 include("diffeq_problems.jl")
