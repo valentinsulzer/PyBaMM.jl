@@ -64,7 +64,7 @@ function get_dae_problem(sim, tend, inputs;dae_type="implicit",preallocate=true,
     # Create vector of 1s and 0s to indicate differential and algebraic variables
     len_rhs = convert(Int, sim.built_model.len_rhs)
     len_alg = convert(Int, sim.built_model.len_alg)
-    differential_vars = vcat(ones(len_rhs), zeros(len_alg))
+    differential_vars = Bool.(vcat(ones(len_rhs), zeros(len_alg)))
     
     
     # Create problem, isinplace is explicitly true as cannot be inferred from
