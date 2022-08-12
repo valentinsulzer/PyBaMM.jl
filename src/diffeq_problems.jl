@@ -10,13 +10,23 @@ function _problem_setup(sim, tend, inputs;dae_type="implicit",preallocate=true,c
     p = isnothing(inputs) ? nothing : collect(values(inputs))
 
     sim.build()
-    fn_str, u0_str = sim.built_model.generate_julia_diffeq(
-        input_parameter_order=input_parameter_order, 
-        dae_type=dae_type, 
-        get_consistent_ics_solver=pybamm.CasadiSolver(),
-        preallocate=preallocate,
-        cache_type=cache_type
-    )
+    if dae_type=="implicit"
+        fn_str, u0_str = sim.built_model.generate_julia_diffeq(
+            input_parameter_order=input_parameter_order, 
+            dae_type=dae_type, 
+            get_consistent_ics_solver=pybamm.CasadiSolver(),
+            preallocate=preallocate,
+            cache_type=cache_type
+        )
+    else
+        fn_str, u0_str = sim.built_model.generate_julia_diffeq(
+            input_parameter_order=input_parameter_order, 
+            dae_type=dae_type, 
+            get_consistent_ics_solver=nothing,
+            preallocate=preallocate,
+            cache_type=cache_type
+        )
+    end
 
     # PyBaMM-generated functions
     sim_fn! = runtime_eval(Meta.parse(fn_str))
@@ -80,7 +90,7 @@ function get_dae_problem(sim, tend, inputs;dae_type="implicit",preallocate=true,
         func! = ODEFunction{true,true}(sim_fn!, mass_matrix=mass_matrix)
         # Create problem, isinplace is explicitly true as cannot be inferred from
         # runtime_eval function
-        return ODEProblem{true}(func!, u0, tspan, p),callbackSet
+        return ODEProblem{true}(func!, u0, tspan, p,initializealg=BrownFullBasicInit()),callbackSet
     end
 
 end
