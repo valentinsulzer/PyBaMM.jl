@@ -1,10 +1,58 @@
-using PyCall,PyBaMM,BenchmarkTools,DifferentialEquations,SparseArrays,LinearSolve,Symbolics,IncompleteLU,Plots
+using PyCall,PyBaMM,BenchmarkTools,DifferentialEquations,SparseArrays,LinearSolve,Symbolics,IncompleteLU,GeneralizedGenerated,CUDA
 
 
 
 pybamm = pyimport("pybamm")
 model = pybamm.lithium_ion.DFN(name="DFN")
-sim = pybamm.Simulation(model)
+
+var_pts = Dict(
+    "R_n"=>10,
+    "R_p"=>10,
+    "r_p"=>10,
+    "r_n"=>10,
+    "x_p"=>10,
+    "x_n"=>10,
+    "z"=>10,
+    "x_s"=>10,
+    "y"=>10
+)
+
+
+sim = pybamm.Simulation(model,var_pts=var_pts)
+sim.build()
+
+#Generate Analytical Jacobian
+input_parameter_order = []
+dae_type="semi-explicit"
+preallocate=true
+generate_jacobian=true
+cache_type="dual"
+
+
+
+fn_str, u0,jac_str = sim.built_model.generate_julia_diffeq(
+  input_parameter_order=input_parameter_order, 
+  dae_type=dae_type, 
+  get_consistent_ics_solver=pybamm.CasadiSolver(),
+  preallocate=preallocate,
+  cache_type="standard",
+  generate_jacobian=generate_jacobian
+);
+
+open("f.jl","w") do io
+  write(io,fn_str)
+end
+
+open("f_jac.jl","w") do io
+  write(io,jac_str)
+end
+
+include("../f_jac.jl")
+
+u0 = vec(u0.evaluate())
+
+jac_fn! = runtime_eval(Meta.parse(jac_str));
+fn! = runtime_eval(Meta.parse(fn_str))
 
 prob,cbs = get_dae_problem(sim,dae_type="semi-explicit",cache_type="dual")
 #sol = solve(prob, Rodas5(autodiff=false), save_everystep=false);
@@ -14,7 +62,6 @@ du0 = similar(u0)
 p = prob.p
 t = 0.0
 prob.f(du0,u0,p,t)
-
 prob_symbolic,cbs = get_dae_problem(sim,dae_type="semi-explicit",cache_type="symbolic")
 jac_sparsity = float(Symbolics.jacobian_sparsity((du,u)->prob_symbolic.f(du,u,p,t),du0,u0))
 
@@ -40,7 +87,7 @@ Base.eltype(::IncompleteLU.ILUFactorization{Tv,Ti}) where {Tv,Ti} = Tv
 
 alg = QBDF
 
-sol = solve(prob_sparse,alg(linsolve=KLUFactorization(),concrete_jac=true))
+sol = solve(prob_sparse,alg(concrete_jac=true))
 
 # Calculate voltage in Julia
 V = get_variable(sim, sol, "Terminal voltage [V]")

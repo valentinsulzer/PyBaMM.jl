@@ -22,7 +22,9 @@ end
 function build_terminating_callback(event,size)
     #Generate Julia Function with the Event
     pybamm = pyimport("pybamm")
-    jl_str = pybamm.get_julia_function(event.expression)
+    myconverter = pybamm.JuliaConverter()
+    myconverter.convert_tree_to_intermediate(event.expression)
+    jl_str = myconverter.build_julia_code()
     jl_func! = runtime_eval(Meta.parse(jl_str))
     #Generate Condition for Callback
     f = begin
