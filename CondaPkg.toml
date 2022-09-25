@@ -1,0 +1,6 @@
+[deps]
+python = "=3.9"
+
+[pip.deps]
+multimethod = ""
+pybamm = "@ ./../PyBaMM"

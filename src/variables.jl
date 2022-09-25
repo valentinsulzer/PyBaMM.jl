@@ -11,7 +11,7 @@ function get_variable(sim, sol::T, var_name::String, inputs) where {T<:DESolutio
     var_converter = pybamm.JuliaConverter(input_parameter_order=input_parameter_order)
     var_converter.convert_tree_to_intermediate(sim.built_model.variables[var_name])
     var_str = var_converter.build_julia_code(funcname="var_func")
-    var_func! = runtime_eval(Meta.parse(var_str))
+    var_func! = runtime_eval(Meta.parse(pyconvert(String,var_str)))
 
     # Evaluate and fill in the vector
     # 0D variables only for now
@@ -36,7 +36,7 @@ function get_l2loss_function(sim, var_name, inputs, data)
     var_converter = pybamm.JuliaConverter(input_parameter_order=input_parameter_order)
     var_converter.convert_tree_to_intermediate(sim.built_model.variables[var_name])
     var_str = var_converter.build_julia_code(funcname="var_func")
-    var_func! = runtime_eval(Meta.parse(var_str))
+    var_func! = runtime_eval(Meta.parse(pyconvert(String,var_str)))
 
     # Evaluate L2 loss
     out = [0.0]
@@ -66,7 +66,7 @@ function get_variable(sim, sol::Vector, var_name::String, inputs,t)
         funcname="var_func",
         input_parameter_order=input_parameter_order
     )
-    var_func! = runtime_eval(Meta.parse(var_str))
+    var_func! = runtime_eval(Meta.parse(pyconvert(String,var_str)))
 
     # Evaluate and fill in the vector
     # 0D variables only for now
@@ -86,6 +86,6 @@ function get_variable_function(sim,var_name;inputs=nothing)
         funcname="var_func",
         input_parameter_order=input_parameter_order
     )
-    var_func! = runtime_eval(Meta.parse(var_str))
+    var_func! = runtime_eval(Meta.parse(pyconvert(String,var_str)))
     return var_func!
 end

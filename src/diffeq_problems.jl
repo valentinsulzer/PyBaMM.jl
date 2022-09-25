@@ -28,18 +28,20 @@ function _problem_setup(sim, tend, inputs;dae_type="implicit",preallocate=true,c
         )
     end
 
+    fn_str = string(fn_str)
+
     # PyBaMM-generated functions
     sim_fn! = runtime_eval(Meta.parse(fn_str))
 
     # Evaluate initial conditions
-    len_y = convert(Int, sim.built_model.len_rhs_and_alg)
-    u0 = vec(u0.evaluate())
+    len_y = convert(Int, pyconvert(Int,sim.built_model.len_rhs_and_alg))
+    u0 = vec(pyconvert(Array{Float64,2},u0.evaluate()))
     if cache_type=="gpu"
         u0 = cu(u0)
     end
 
     # Scale the time
-    tau = sim.built_model.timescale.evaluate()
+    tau = pyconvert(Float64,sim.built_model.timescale.evaluate())
     tspan = (0, tend/tau)
     
 
@@ -69,8 +71,8 @@ function get_dae_problem(sim, tend, inputs;dae_type="implicit",preallocate=true,
     sim_fn!, u0, tspan, p, callbackSet = _problem_setup(sim, tend, inputs,dae_type=dae_type,preallocate=preallocate,cache_type=cache_type)
     
     # Create vector of 1s and 0s to indicate differential and algebraic variables
-    len_rhs = convert(Int, sim.built_model.len_rhs)
-    len_alg = convert(Int, sim.built_model.len_alg)
+    len_rhs = convert(Int, pyconvert(Int,sim.built_model.len_rhs))
+    len_alg = convert(Int, pyconvert(Int,sim.built_model.len_alg))
     differential_vars = Bool.(vcat(ones(len_rhs), zeros(len_alg)))
     
     

@@ -2,7 +2,6 @@ using Test
 using PyBaMM
 using SparseArrays, LinearAlgebra
 using Sundials
-using PyCall
 using OrdinaryDiffEq
 
 pybamm = pyimport("pybamm")
@@ -22,7 +21,7 @@ pybamm = pyimport("pybamm")
 
     # Solve in python
     sol_pybamm = sim.solve(t)
-    V_pybamm = get(sol_pybamm, "Terminal voltage [V]").data
+    V_pybamm = pyconvert(Array{Float64},get(sol_pybamm, "Terminal voltage [V]",nothing).data)
     @test all(isapprox.(V_pybamm, V, atol=1e-3))
 end
 
@@ -41,7 +40,7 @@ end
 
     # Solve in python
     sol_pybamm = sim.solve(t)
-    V_pybamm = get(sol_pybamm, "Terminal voltage [V]").data
+    V_pybamm = pyconvert(Array{Float64},get(sol_pybamm, "Terminal voltage [V]",nothing).data)
     @test all(isapprox.(V_pybamm, V, atol=1e-4))
 end
 
@@ -60,7 +59,7 @@ end
 
     # Solve in python
     sol_pybamm = sim.solve(t)
-    V_pybamm = get(sol_pybamm, "Terminal voltage [V]").data
+    V_pybamm = pyconvert(Array{Float64},get(sol_pybamm, "Terminal voltage [V]",nothing).data)
     @test all(isapprox.(V_pybamm, V, atol=1e-3))
 end
 
@@ -80,6 +79,6 @@ end
 
     # Solve in python
     sol_pybamm = sim.solve(t)
-    V_pybamm = get(sol_pybamm, "Terminal voltage [V]").data
+    V_pybamm = pyconvert(Array{Float64},get(sol_pybamm, "Terminal voltage [V]",nothing).data)
     @test all(isapprox.(V_pybamm, V, atol=1e-3))
 end
