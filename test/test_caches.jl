@@ -2,7 +2,6 @@ using Test
 using PyBaMM
 using SparseArrays, LinearAlgebra,CUDA
 using Sundials
-using PyCall
 using OrdinaryDiffEq
 using ModelingToolkit
 

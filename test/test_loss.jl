@@ -2,7 +2,6 @@ using Test
 using PyBaMM
 using SparseArrays, LinearAlgebra
 using Sundials
-using PyCall
 using OrderedCollections
 
 pybamm = pyimport("pybamm")
@@ -12,10 +11,10 @@ pybamm = pyimport("pybamm")
     model = pybamm.lithium_ion.SPMe(name="SPMe")
     parameter_values = model.default_parameter_values
     parameter_values.update(
-        Dict(
+        PyDict(Dict(
             "Cation transference number" => pybamm.InputParameter("t_plus"),
             "Electrolyte conductivity [S.m-1]" => pybamm.InputParameter("kappa_e"),
-        )
+        ))
     )
     sim = pybamm.Simulation(model, parameter_values=parameter_values)
 
@@ -53,10 +52,10 @@ end
     model = pybamm.lithium_ion.DFN(name="DFN")
     parameter_values = model.default_parameter_values
     parameter_values.update(
-        Dict(
+        PyDict(Dict(
             "Cation transference number" => pybamm.InputParameter("t_plus"),
             "Electrolyte conductivity [S.m-1]" => pybamm.InputParameter("kappa_e"),
-        )
+        ))
     )
     sim = pybamm.Simulation(model, parameter_values=parameter_values)
 
