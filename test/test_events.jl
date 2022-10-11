@@ -11,7 +11,7 @@ pybamm = pyimport("pybamm")
     sim = pybamm.Simulation(model)
     prob,cbs = get_ode_problem(sim)
     prob = remake(prob,tspan=(0,0.5))
-    event_to_test = sim.built_model.events[8]
+    event_to_test = sim.built_model.events[4]
     problem_size = length(prob.u0)
     sol = solve(prob,Rodas5(autodiff=false),callback=cbs)
     @test sol.retcode==:Terminated

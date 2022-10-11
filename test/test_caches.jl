@@ -1,10 +1,10 @@
 using Test
 using PyBaMM
-using SparseArrays, LinearAlgebra,CUDA
+using SparseArrays, LinearAlgebra
 using Sundials
 using PyCall
 using OrdinaryDiffEq
-using ModelingToolkit
+
 
 pybamm=pyimport("pybamm")
 
