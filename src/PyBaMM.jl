@@ -1,14 +1,17 @@
 module PyBaMM
 
-using GeneralizedGenerated
+
 using Reexport
+@reexport using GeneralizedGenerated
 @reexport using CUDA
 @reexport using LinearSolve
 @reexport using LinearAlgebra, SparseArrays
 @reexport using Symbolics
 @reexport using PreallocationTools
 @reexport using ModelingToolkit
-using PyCall
+@reexport using PythonCall
+@reexport using ForwardDiff
+@reexport using OrdinaryDiffEq
 
 include("diffeq_problems.jl")
 export get_ode_problem, get_dae_problem,get_semiexplicit_dae_problem,get_optimized_problem
