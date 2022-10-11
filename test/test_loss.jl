@@ -1,7 +1,7 @@
 using Test
 using PyBaMM
 using SparseArrays, LinearAlgebra
-using Sundials
+using Sundials,OrdinaryDiffEq
 using PyCall
 using OrderedCollections
 
@@ -69,7 +69,7 @@ end
     prob,cbs = get_dae_problem(sim, inputs,dae_type="semi-explicit",cache_type="dual")
     t = prob.tspan[2] / 100
     # Generate data
-    sol = solve(prob, ROS34PW2(), reltol=1e-6, abstol=1e-6, saveat=t);
+    sol = solve(prob, ROS34PW2(autodiff=false), reltol=1e-6, abstol=1e-6, saveat=t);
     V_data = get_variable(sim, sol, "Terminal voltage [V]", inputs)
 
     # Get loss function
@@ -80,9 +80,9 @@ end
 
     # Loss should get bigger as parameters get further away from truth
     prob2 = remake(prob; p=[0.5,0.7])
-    sol2 = solve(prob2, ROS34PW2(), reltol=1e-6, abstol=1e-6, saveat=t);
+    sol2 = solve(prob2, ROS34PW2(autodiff=false), reltol=1e-6, abstol=1e-6, saveat=t);
     
     prob3 = remake(prob; p=[0.6,0.7])
-    sol3 = solve(prob3, ROS34PW2(), reltol=1e-6, abstol=1e-6, saveat=t);
+    sol3 = solve(prob3, ROS34PW2(autodiff=false), reltol=1e-6, abstol=1e-6, saveat=t);
     @test loss(sol2) < loss(sol3)
 end
