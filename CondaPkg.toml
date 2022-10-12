@@ -2,5 +2,4 @@
 python = "=3.9"
 
 [pip.deps]
-multimethod = ""
-pybamm = "@ ./../PyBaMM"
+pybamm = "@ git+https://github.com/abillscmu/PyBaMM@nonallocating-noncacheing"

@@ -1,5 +1,5 @@
-using PyCall,PyBaMM,BenchmarkTools,DifferentialEquations,SparseArrays,LinearSolve,Symbolics,IncompleteLU,GeneralizedGenerated,CUDA
-
+#using PyCall,PyBaMM,BenchmarkTools,DifferentialEquations,SparseArrays,LinearSolve,Symbolics,IncompleteLU,GeneralizedGenerated,CUDA
+using PyBaMM
 
 
 pybamm = pyimport("pybamm")
@@ -38,7 +38,7 @@ fn_str, u0,jac_str = sim.built_model.generate_julia_diffeq(
   cache_type="standard",
   generate_jacobian=generate_jacobian
 );
-
+#=
 open("f.jl","w") do io
   write(io,fn_str)
 end
@@ -48,7 +48,7 @@ open("f_jac.jl","w") do io
 end
 
 include("../f_jac.jl")
-
+=#
 u0 = vec(u0.evaluate())
 
 jac_fn! = runtime_eval(Meta.parse(jac_str));

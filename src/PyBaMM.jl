@@ -12,6 +12,7 @@ using Reexport
 @reexport using PythonCall
 @reexport using ForwardDiff
 @reexport using OrdinaryDiffEq
+@reexport using OrderedCollections
 
 include("diffeq_problems.jl")
 export get_ode_problem, get_dae_problem,get_semiexplicit_dae_problem,get_optimized_problem
