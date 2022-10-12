@@ -1,13 +1,14 @@
 # PyBaMM.jl
 
 PyBaMM.jl is a common interface binding for the [PyBaMM](pybamm.org) Python battery modeling package. 
-It uses the [PyCall.jl](https://github.com/JuliaPy/PyCall.jl) interop in order to retrieve the equations from python in a Julia-readable form.
+It uses the [PythonCall.jl](https://github.com/cjdoris/PythonCall.jl) interop in order to retrieve the equations from python in a Julia-readable form.
 
 ## Installation
 
-If you're using MacOS or Windows and have PyCall set to default settings, PyBaMM will be automatically installed when PyBaMM.jl is installed via Pkg. To automatically install PyBaMM on linux, just set ENV["PYTHON"]="", build PyCall.jl, and then rebuild PyBaMM.jl.
+PyBaMM will be automatically installed when PyBaMM.jl is installed, via [CondaPkg](https://github.com/cjdoris/CondaPkg.jl)
 
-If you want to bring your own python, or want to use the system Python on linux, you'll need to install your own PyBaMM. 
+If you want to bring your own python, or want to use the system Python on linux, you'll need to install your own PyBaMM. Please follow the instructions provided by [PythonCall.jl](https://github.com/cjdoris/PythonCall.jl)
+
 For example, in Linux/Julia do
 
 ```bash

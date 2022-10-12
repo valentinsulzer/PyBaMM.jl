@@ -16,7 +16,7 @@ pybamm = pyimport("pybamm")
     cache_type="dual"
     generate_jacobian=true
 
-    for model in [dfn]
+    for model in [spm, spme, dfn]
         sim = pybamm.Simulation(model)
         sim.build()
         
