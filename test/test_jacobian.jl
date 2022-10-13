@@ -29,9 +29,13 @@ pybamm = pyimport("pybamm")
             cache_type=cache_type,
             generate_jacobian=generate_jacobian
         )
-        u0 = vec(pyconvert(Array{Float64},u0.evaluate()))
+        u0! = runtime_eval(Meta.parse(pyconvert(String,u0)))
         fn! = runtime_eval(Meta.parse(pyconvert(String,fn_str)))
         jac_fn! = runtime_eval(Meta.parse(pyconvert(String,jac_str)))
+        len_y = convert(Int, pyconvert(Int,sim.built_model.len_rhs_and_alg))
+        p=nothing
+        u0 = zeros(len_y)
+        u0!(u0,p)
         function myjac(u0)
             du = similar(u0)
             fn!(du, u0, nothing, 0.0)

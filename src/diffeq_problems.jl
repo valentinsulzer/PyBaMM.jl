@@ -11,7 +11,7 @@ function _problem_setup(sim, tend, inputs;dae_type="implicit",preallocate=true,c
 
     sim.build()
     if dae_type=="implicit"
-        fn_str, u0 = sim.built_model.generate_julia_diffeq(
+        fn_str, u0_str = sim.built_model.generate_julia_diffeq(
             input_parameter_order=input_parameter_order, 
             dae_type=dae_type, 
             get_consistent_ics_solver=pybamm.CasadiSolver(),
@@ -19,7 +19,7 @@ function _problem_setup(sim, tend, inputs;dae_type="implicit",preallocate=true,c
             cache_type=cache_type
         )
     else
-        fn_str, u0 = sim.built_model.generate_julia_diffeq(
+        fn_str, u0_str = sim.built_model.generate_julia_diffeq(
             input_parameter_order=input_parameter_order, 
             dae_type=dae_type, 
             get_consistent_ics_solver=nothing,
@@ -29,13 +29,18 @@ function _problem_setup(sim, tend, inputs;dae_type="implicit",preallocate=true,c
     end
 
     fn_str = string(fn_str)
+    u0_str = string(u0_str)
 
     # PyBaMM-generated functions
     sim_fn! = runtime_eval(Meta.parse(fn_str))
+    u0_fn! = runtime_eval(Meta.parse(u0_str))
+    
+
 
     # Evaluate initial conditions
     len_y = convert(Int, pyconvert(Int,sim.built_model.len_rhs_and_alg))
-    u0 = vec(pyconvert(Array{Float64,2},u0.evaluate()))
+    u0 = zeros(len_y)
+    u0_fn!(u0,p)
     if cache_type=="gpu"
         u0 = cu(u0)
     end
