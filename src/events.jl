@@ -4,8 +4,8 @@
 using OrdinaryDiffEq
 
 function build_callback(event,size)
-    type = event.event_type.value
-    scalar_check = event.expression.__class__.__name__
+    type = pyconvert(Int,event.event_type.value)
+    scalar_check = pyconvert(String,event.expression.__class__.__name__)
     if scalar_check=="Scalar"
         return nothing
     end
@@ -22,7 +22,9 @@ end
 function build_terminating_callback(event,size)
     #Generate Julia Function with the Event
     pybamm = pyimport("pybamm")
-    jl_str = pybamm.get_julia_function(event.expression)
+    myconverter = pybamm.JuliaConverter()
+    myconverter.convert_tree_to_intermediate(event.expression)
+    jl_str = pyconvert(String,myconverter.build_julia_code())
     jl_func! = runtime_eval(Meta.parse(jl_str))
     #Generate Condition for Callback
     f = begin
