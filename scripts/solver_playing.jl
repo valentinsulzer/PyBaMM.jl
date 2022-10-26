@@ -38,6 +38,8 @@ fn_str, u0,jac_str = sim.built_model.generate_julia_diffeq(
   cache_type="standard",
   generate_jacobian=generate_jacobian
 );
+
+fn_str = pyconvert(String, fn_str)
 #=
 open("f.jl","w") do io
   write(io,fn_str)
@@ -48,12 +50,12 @@ open("f_jac.jl","w") do io
 end
 
 include("../f_jac.jl")
-=#
+
 u0 = vec(u0.evaluate())
 
 jac_fn! = runtime_eval(Meta.parse(jac_str));
 fn! = runtime_eval(Meta.parse(fn_str))
-
+=#
 prob,cbs = get_dae_problem(sim,dae_type="semi-explicit",cache_type="dual")
 #sol = solve(prob, Rodas5(autodiff=false), save_everystep=false);
 
