@@ -2,4 +2,5 @@
 python = "=3.9"
 
 [pip.deps]
-pybamm = "@ git+https://github.com/abillscmu/pybamm@nonallocating-noncacheing"
+pybamm = "@ git+http://github.com/abillscmu/pybamm@one-big-matrix"
+liionpack = ""
