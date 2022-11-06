@@ -1,6 +1,26 @@
-function build_pack(Np, Ns, model, tend=3600.0, functional=true)
-    
-    netlist = lp.setup_circuit(Np, Ns, I=25.0)
+using PyBaMM
+using LinearSolve
+using TerminalLoggers
+
+pybamm = pyimport("pybamm")
+lp = pyimport("liionpack")
+
+
+Np = 10
+Ns = 14
+
+curr = 25.0
+
+p = nothing 
+t = 0.0
+functional = true
+
+options = Dict("thermal" => "lumped")
+
+
+model = pybamm.lithium_ion.DFN(name="DFN", options=options)
+
+netlist = lp.setup_circuit(Np, Ns, I=curr)
     
     pybamm_pack = pybamm.Pack(model, netlist, functional=functional, thermal=true)
     pybamm_pack.build_pack()
@@ -31,14 +51,9 @@ function build_pack(Np, Ns, model, tend=3600.0, functional=true)
 
     dy = similar(jl_vec)
 
+
+    println("Calculating Jacobian Sparsity")
     jac_sparsity = float(Symbolics.jacobian_sparsity((du,u)->jl_func(du,u,p,t),dy,jl_vec))
-
-    netlist = lp.setup_circuit(Np, Ns, I=25.0)
-    
-    pybamm_pack = pybamm.Pack(model, netlist, functional=functional, thermal=true)
-    pybamm_pack.build_pack()
-
-    timescale = pyconvert(Float64,pybamm_pack.timescale.evaluate())
     
 
     if functional
@@ -59,6 +74,11 @@ function build_pack(Np, Ns, model, tend=3600.0, functional=true)
     np_vec = ics_vector.evaluate()
     jl_vec = vec(pyconvert(Array{Float64}, np_vec))
 
+    pack_voltage_index = Np + 1
+    pack_voltage = 1.0
+    jl_vec[1:Np] .=  curr
+    jl_vec[pack_voltage_index] = pack_voltage
+
     pack_str = pyconvert(String, pack_str)
     jl_func = eval(Meta.parse(pack_str))
 
@@ -71,6 +91,14 @@ function build_pack(Np, Ns, model, tend=3600.0, functional=true)
     differential_vars = vcat(pack_eqs,cells)
     mass_matrix = sparse(diagm(differential_vars))
     func = ODEFunction(jl_func, mass_matrix=mass_matrix,jac_prototype=jac_sparsity)
-    prob = ODEProblem(func, jl_vec, (0.0, 1/timescale), nothing)
-    return prob
-end
+    prob = ODEProblem(func, jl_vec, (0.0, 600/timescale), nothing)
+
+    @time sol = solve(prob, Trapezoid())
+    @time sol = solve(prob, Trapezoid())
+    @time sol = solve(prob, Trapezoid())
+    @time sol = solve(prob, Trapezoid())
+    @time sol = solve(prob, Trapezoid())
+    @time sol = solve(prob, Trapezoid())
+    @time sol = solve(prob, Trapezoid())
+    @time sol = solve(prob, Trapezoid())
+    @time sol = solve(prob, Trapezoid())

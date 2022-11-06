@@ -2,5 +2,5 @@
 python = "=3.9"
 
 [pip.deps]
-pybamm = "@ git+http://github.com/abillscmu/pybamm@one-big-matrix"
+pybamm = "@ git+https://github.com/abillscmu/pybamm@pack"
 liionpack = ""

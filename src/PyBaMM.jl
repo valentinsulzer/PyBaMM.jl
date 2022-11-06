@@ -14,6 +14,9 @@ using Reexport
 @reexport using OrdinaryDiffEq
 @reexport using OrderedCollections
 
+lp = pyimport("liionpack")
+pybamm = pyimport("pybamm")
+
 include("diffeq_problems.jl")
 export get_ode_problem, get_dae_problem,get_semiexplicit_dae_problem,get_optimized_problem
 
@@ -25,5 +28,8 @@ export build_callback
 
 include("symcache.jl")
 export DiffCache,get_tmp,symcache
+
+include("build_pack.jl")
+export build_pack
 
 end # module
