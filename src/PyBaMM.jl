@@ -13,6 +13,7 @@ using Reexport
 @reexport using ForwardDiff
 @reexport using OrdinaryDiffEq
 @reexport using OrderedCollections
+@reexport using Sundials
 
 lp = pyimport("liionpack")
 pybamm = pyimport("pybamm")

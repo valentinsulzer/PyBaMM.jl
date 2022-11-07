@@ -1,25 +1,86 @@
-function get_experiment_probs(sim, inputs, tend)
+function get_experiment_probs(sim, inputs, tend; dae_type = "semi-explicit", initial_soc = nothing)
     #tspan is a lie!
-    sim.build_for_experiment()
+    sim.build_for_experiment(initial_soc = initial_soc)
+    p = nothing
 
     #I'm only going to support time-based stuff for now.
     op_conds = sim.experiment.operating_conditions
     num_steps = length(op_conds)
-    funcs = []
+    probs = []
     for step in 1:num_steps
         op_cond = op_conds[step-1] # pythoncall uses python indexing
-        built_model = sim.op_conds_to_built_models[op_cond["electric"]]
+        built_model = sim.op_conds_to_built_models[op_cond["string"]]
         real_model = pybamm.numpy_concatenation(
             built_model.concatenated_rhs,
             built_model.concatenated_algebraic
         )
-        jl_converter = pybamm.JuliaConverter()
-        jl_converter.convert_tree_to_intermediate(real_model)
-        jl_str = pyconvert(String,jl_converter.build_julia_code())
-        jl_func = eval(Meta.parse(jl_str))
-        push!(funcs, jl_func)
+        input_parameter_order = []
+        preallocate = true
+        cache_type = "standard"
+
+        if dae_type=="implicit"
+            fn_str, u0_str = built_model.generate_julia_diffeq(
+                input_parameter_order=input_parameter_order, 
+                dae_type=dae_type, 
+                get_consistent_ics_solver=pybamm.CasadiSolver(),
+                preallocate=preallocate,
+                cache_type=cache_type
+            )
+        else
+            fn_str, u0_str = built_model.generate_julia_diffeq(
+                input_parameter_order=input_parameter_order, 
+                dae_type=dae_type, 
+                get_consistent_ics_solver=nothing,
+                preallocate=preallocate,
+                cache_type=cache_type
+            )
+        end
+
+        fn_str = string(fn_str)
+        u0_str = string(u0_str)
+    
+        # PyBaMM-generated functions
+        sim_fn! = runtime_eval(Meta.parse(fn_str))
+        u0_fn! = runtime_eval(Meta.parse(u0_str))
+        
+    
+    
+        # Evaluate initial conditions
+        len_y = convert(Int, pyconvert(Int,built_model.len_rhs_and_alg))
+        u0 = zeros(len_y)
+        u0_fn!(u0,p)
+
+        len_rhs = convert(Int, pyconvert(Int,built_model.len_rhs))
+        len_alg = convert(Int, pyconvert(Int,built_model.len_alg))
+
+
+        tau = pyconvert(Float64,built_model.timescale.evaluate())
+        tspan = (0, 3600 ./tau)
+
+        if len_alg>0
+            differential_vars = Bool.(vcat(ones(len_rhs), zeros(len_alg)))
+            if dae_type=="implicit"
+                prob = DAEProblem{true}(sim_fn!, du0, u0, tspan, p, differential_vars=differential_vars)
+            elseif dae_type=="semi-explicit"
+                mass_matrix = diagm(differential_vars)
+                if cache_type=="gpu"
+                    mass_matrix=cu(mass_matrix)
+                end
+                func! = ODEFunction{true,true}(sim_fn!, mass_matrix=mass_matrix)
+                # Create problem, isinplace is explicitly true as cannot be inferred from
+                # runtime_eval function
+                prob = ODEProblem{true}(func!, u0, tspan, p,initializealg=BrownFullBasicInit())
+            else
+                println(dae_type)
+            end
+        else
+            prob = ODEProblem{true}(sim_fn!, u0, tspan, p)
+        end
+
+
+        push!(probs, prob)
     end
-    return funcs
+    return probs
 end
 
 function get_termination_condition(sim, inputs, tend)
