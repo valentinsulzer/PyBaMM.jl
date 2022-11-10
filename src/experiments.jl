@@ -1,4 +1,4 @@
-function get_experiment_probs(sim, inputs, tend; dae_type = "semi-explicit", initial_soc = nothing)
+function get_experiment_probs(sim; dae_type = "semi-explicit", initial_soc = nothing)
     #tspan is a lie!
     sim.build_for_experiment(initial_soc = initial_soc)
     p = nothing
@@ -83,7 +83,7 @@ function get_experiment_probs(sim, inputs, tend; dae_type = "semi-explicit", ini
     return probs
 end
 
-function get_termination_condition(sim, inputs, tend)
+function get_termination_condition(sim)
     #tspan is a lie!
     sim.build_for_experiment()
 
@@ -172,6 +172,56 @@ function set_initial_conditions!(new_u, old_model, new_model, last_u)
             new_u[start_index:step:stop_index] .= Base.@invokelatest jl_func(last_u, 0)
         end
     end    
+end
+
+function solve_with_experiment(sim; alg=Trapezoid, autodiff=false, vars_to_save = [], save_everystep=true)
+    probs = get_experiment_probs(sim, initial_soc = 1.0)
+    termination_funcs = get_termination_condition(sim)
+    steps = length(sim.experiment.operating_conditions)
+    sols = []
+    ts = []
+    var_funcs = []
+    save_vars = Dict(var_to_save => Float64[] for var_to_save in vars_to_save)
+    dt = 0.0
+    ic = probs[1].u0
+    for step in 1:steps
+        println("doing step $step")
+        prob = probs[step]
+        term_cond = termination_funcs[step]
+        built_model = sim.op_conds_to_built_models[sim.experiment.operating_conditions[step-1]["string"]]
+        
+        for (i,var_to_save) in enumerate(vars_to_save)
+            var_func = pybamm.PybammJuliaFunction([pybamm.StateVector(pyslice(0,1)), pybamm.Time()], built_model.variables[var_to_save], "jl_var_func", false)
+            julia_converter = pybamm.JuliaConverter()
+            julia_converter.convert_tree_to_intermediate(var_func)
+            jl_str = julia_converter.build_julia_code()
+            jl_func = eval(Meta.parse(pyconvert(String,jl_str)))
+            push!(var_funcs, jl_func)
+        end
+
+        if step!=1
+            #set initial condition for the next step.
+            dt = ts[end]
+            new_model = sim.op_conds_to_built_models[sim.experiment.operating_conditions[step-1]["string"]]
+            old_model = sim.op_conds_to_built_models[sim.experiment.operating_conditions[step-2]["string"]]
+            new_u0 = deepcopy(prob.u0)
+            old_u0 = ic
+            set_initial_conditions!(new_u0, old_model, new_model, old_u0)
+            prob = remake(prob, u0=new_u0)
+        end
+        done = false
+        integrator = init(prob, alg(autodiff=autodiff), reltol=1e-3, abstol=1e-3, save_everystep=save_everystep)
+        while !done
+            step!(integrator)
+            done = any((Base.@invokelatest term_cond(integrator.u, integrator.t*pyconvert(Float64, built_model.timescale.evaluate()))).<0)
+            for (i,var_to_save) in enumerate(vars_to_save)
+                push!(save_vars[var_to_save], (Base.@invokelatest var_funcs[i](integrator.u, integrator.t*pyconvert(Float64, built_model.timescale.evaluate())))[1])
+            end
+            push!(ts, integrator.t*pyconvert(Float64, built_model.timescale.evaluate()).+dt)
+        end
+        ic = integrator.u
+    end
+    return sols, save_vars, ts
 end
 
 

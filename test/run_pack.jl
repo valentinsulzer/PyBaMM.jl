@@ -7,9 +7,9 @@ lp = pyimport("liionpack")
 
 
 Np = 10
-Ns = 14
+Ns = 10
 
-curr = 25.0
+curr = 1.2
 
 p = nothing 
 t = 0.0
@@ -93,12 +93,20 @@ netlist = lp.setup_circuit(Np, Ns, I=curr)
     func = ODEFunction(jl_func, mass_matrix=mass_matrix,jac_prototype=jac_sparsity)
     prob = ODEProblem(func, jl_vec, (0.0, 600/timescale), nothing)
 
-    @time sol = solve(prob, Trapezoid())
-    @time sol = solve(prob, Trapezoid())
-    @time sol = solve(prob, Trapezoid())
-    @time sol = solve(prob, Trapezoid())
-    @time sol = solve(prob, Trapezoid())
-    @time sol = solve(prob, Trapezoid())
-    @time sol = solve(prob, Trapezoid())
-    @time sol = solve(prob, Trapezoid())
-    @time sol = solve(prob, Trapezoid())
+    using IncompleteLU
+function incompletelu(W,du,u,p,t,newW,Plprev,Prprev,solverdata)
+  if newW === nothing || newW
+    Pl = ilu(convert(AbstractMatrix,W), τ = 50.0)
+  else
+    Pl = Plprev
+  end
+  Pl,nothing
+end
+
+dt = 1/timescale
+ddt = eps(dt)
+max_dt = dt + ddt
+min_dt = dt - ddt
+
+@time solve(prob, Trapezoid(linsolve=KrylovJL_GMRES(),precs=incompletelu,concrete_jac=true))
+@time solve(prob, Trapezoid(linsolve=KrylovJL_GMRES(),precs=incompletelu,concrete_jac=true))
