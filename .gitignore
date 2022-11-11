@@ -3,3 +3,5 @@ LocalPreferences.toml
 .vscode/
 *.log
 .CondaPkg/
+*.out
+*.jld2

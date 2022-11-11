@@ -1,15 +1,16 @@
 using PyBaMM
 using LinearSolve
 using TerminalLoggers
+using JLD2
 
 pybamm = pyimport("pybamm")
 lp = pyimport("liionpack")
 
 
 Np = 10
-Ns = 10
+Ns = 50
 
-curr = 1.2
+curr = 6.5
 
 p = nothing 
 t = 0.0
@@ -69,6 +70,12 @@ netlist = lp.setup_circuit(Np, Ns, I=curr)
     myconverter = pybamm.JuliaConverter(cache_type = "dual")
     myconverter.convert_tree_to_intermediate(pybamm_pack.pack)
     pack_str = myconverter.build_julia_code()
+    open("pack50x10.jl","w") do io
+	println(io,pack_str)
+    end
+    open("cell50x10.jl","w") do io
+	println(io,cell_str)
+    end
 
     ics_vector = pybamm_pack.ics
     np_vec = ics_vector.evaluate()
@@ -91,7 +98,7 @@ netlist = lp.setup_circuit(Np, Ns, I=curr)
     differential_vars = vcat(pack_eqs,cells)
     mass_matrix = sparse(diagm(differential_vars))
     func = ODEFunction(jl_func, mass_matrix=mass_matrix,jac_prototype=jac_sparsity)
-    prob = ODEProblem(func, jl_vec, (0.0, 600/timescale), nothing)
+    prob = ODEProblem(func, jl_vec, (0.0, 3600/timescale), nothing)
 
     using IncompleteLU
 function incompletelu(W,du,u,p,t,newW,Plprev,Prprev,solverdata)
@@ -103,10 +110,15 @@ function incompletelu(W,du,u,p,t,newW,Plprev,Prprev,solverdata)
   Pl,nothing
 end
 
-dt = 1/timescale
-ddt = eps(dt)
-max_dt = dt + ddt
-min_dt = dt - ddt
 
 @time solve(prob, Trapezoid(linsolve=KrylovJL_GMRES(),precs=incompletelu,concrete_jac=true))
-@time solve(prob, Trapezoid(linsolve=KrylovJL_GMRES(),precs=incompletelu,concrete_jac=true))
+@time sol = solve(prob, Trapezoid(linsolve=KrylovJL_GMRES(),precs=incompletelu,concrete_jac=true))
+
+sol_arr = Array(sol)
+sol_t = Array(sol.t)
+
+@save "50x10pack_arjuna.jld2" sol_arr sol_t
+
+sleep(100)
+
+
