@@ -15,8 +15,20 @@ using Reexport
 @reexport using OrderedCollections
 @reexport using Sundials
 
-lp = pyimport("liionpack")
-pybamm = pyimport("pybamm")
+const pybamm = PythonCall.pynew()
+const pybamm_pack = PythonCall.pynew()
+const pybamm_julia = PythonCall.pynew()
+const setup_circuit = PythonCall.pynew()
+const sys = PythonCall.pynew()
+
+function __init__()
+    PythonCall.pycopy!(sys, pyimport("sys"))
+    sys.path.append(joinpath(@__DIR__,"pysrc"))
+    PythonCall.pycopy!(pybamm, pyimport("pybamm"))
+    PythonCall.pycopy!(pybamm_pack, pyimport("pack"))
+    PythonCall.pycopy!(pybamm_julia, pyimport("pybamm2julia"))
+    PythonCall.pycopy!(setup_circuit, pyimport("settup_circuit.py"))
+end
 
 include("diffeq_problems.jl")
 export get_ode_problem, get_dae_problem,get_semiexplicit_dae_problem,get_optimized_problem
