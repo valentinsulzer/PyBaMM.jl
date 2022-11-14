@@ -1,6 +1,4 @@
 [deps]
+pybamm = ""
+networkx = ""
 python = "=3.9"
-
-[pip.deps]
-pybamm = "@ git+https://github.com/abillscmu/pybamm@pack"
-liionpack = ""

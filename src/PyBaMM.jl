@@ -17,17 +17,17 @@ using Reexport
 
 const pybamm = PythonCall.pynew()
 const pybamm_pack = PythonCall.pynew()
-const pybamm_julia = PythonCall.pynew()
+const pybamm2julia = PythonCall.pynew()
 const setup_circuit = PythonCall.pynew()
 const sys = PythonCall.pynew()
 
 function __init__()
     PythonCall.pycopy!(sys, pyimport("sys"))
-    sys.path.append(joinpath(@__DIR__,"pysrc"))
+    sys.path.append(joinpath(@__DIR__,"../pysrc"))
     PythonCall.pycopy!(pybamm, pyimport("pybamm"))
     PythonCall.pycopy!(pybamm_pack, pyimport("pack"))
-    PythonCall.pycopy!(pybamm_julia, pyimport("pybamm2julia"))
-    PythonCall.pycopy!(setup_circuit, pyimport("settup_circuit.py"))
+    PythonCall.pycopy!(pybamm2julia, pyimport("pybamm2julia"))
+    PythonCall.pycopy!(setup_circuit, pyimport("setup_circuit"))
 end
 
 include("diffeq_problems.jl")
@@ -44,5 +44,8 @@ export DiffCache,get_tmp,symcache
 
 include("build_pack.jl")
 export build_pack
+
+include("jacobian.jl")
+export generate_jacobian
 
 end # module

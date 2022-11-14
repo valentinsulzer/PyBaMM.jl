@@ -7,8 +7,7 @@ function get_variable(sim, sol::T, var_name::String, inputs) where {T<:DESolutio
     p = isnothing(inputs) ? nothing : collect(values(inputs))
 
     # Generate the function using PyBaMM
-    pybamm = pyimport("pybamm")
-    var_converter = pybamm.JuliaConverter(input_parameter_order=input_parameter_order)
+    var_converter = pybamm2julia.JuliaConverter(input_parameter_order=input_parameter_order)
     var_converter.convert_tree_to_intermediate(sim.built_model.variables[var_name])
     var_str = var_converter.build_julia_code(funcname="var_func")
     var_func! = runtime_eval(Meta.parse(pyconvert(String,var_str)))
@@ -32,8 +31,7 @@ function get_l2loss_function(sim, var_name, inputs, data)
     p = isnothing(inputs) ? nothing : collect(values(inputs))
 
     # Generate the function using PyBaMM
-    pybamm = pyimport("pybamm")
-    var_converter = pybamm.JuliaConverter(input_parameter_order=input_parameter_order)
+    var_converter = pybamm2julia.JuliaConverter(input_parameter_order=input_parameter_order)
     var_converter.convert_tree_to_intermediate(sim.built_model.variables[var_name])
     var_str = var_converter.build_julia_code(funcname="var_func")
     var_func! = runtime_eval(Meta.parse(pyconvert(String,var_str)))
@@ -60,12 +58,9 @@ function get_variable(sim, sol::Vector, var_name::String, inputs,t)
     p = isnothing(inputs) ? nothing : collect(values(inputs))
 
     # Generate the function using PyBaMM
-    pybamm = pyimport("pybamm")
-    var_str = pybamm.get_julia_function(
-        sim.built_model.variables[var_name],
-        funcname="var_func",
-        input_parameter_order=input_parameter_order
-    )
+    var_converter = pybamm2julia.JuliaConverter(input_parameter_order=input_parameter_order)
+    var_converter.convert_tree_to_intermediate(sim.built_model.variables[var_name])
+    var_str = var_converter.build_julia_code(funcname="var_func!")
     var_func! = runtime_eval(Meta.parse(pyconvert(String,var_str)))
 
     # Evaluate and fill in the vector
@@ -80,12 +75,9 @@ function get_variable_function(sim,var_name;inputs=nothing)
     p = isnothing(inputs) ? nothing : collect(values(inputs))
 
     # Generate the function using PyBaMM
-    pybamm = pyimport("pybamm")
-    var_str = pybamm.get_julia_function(
-        sim.built_model.variables[var_name],
-        funcname="var_func",
-        input_parameter_order=input_parameter_order
-    )
+    var_converter = pybamm2julia.JuliaConverter(input_parameter_order=input_parameter_order)
+    var_converter.convert_tree_to_intermediate(sim.built_model.variables[var_name])
+    var_str = var_converter.build_julia_code(funcname="var_func!")
     var_func! = runtime_eval(Meta.parse(pyconvert(String,var_str)))
     return var_func!
 end

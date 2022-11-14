@@ -5,3 +5,4 @@ LocalPreferences.toml
 .CondaPkg/
 *.out
 *.jld2
+__pycache__/

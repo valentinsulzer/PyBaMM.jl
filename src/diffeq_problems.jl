@@ -10,32 +10,68 @@ function _problem_setup(sim, tend, inputs;dae_type="implicit",preallocate=true,c
     p = isnothing(inputs) ? nothing : collect(values(inputs))
 
     sim.build()
-    if dae_type=="implicit"
-        fn_str, u0_str = sim.built_model.generate_julia_diffeq(
-            input_parameter_order=input_parameter_order, 
-            dae_type=dae_type, 
-            get_consistent_ics_solver=pybamm.CasadiSolver(),
-            preallocate=preallocate,
-            cache_type=cache_type
+    built_model = sim.built_model
+
+    name = built_model.name.replace(" ","_")
+
+    if pyconvert(Bool,built_model.algebraic == pydict())
+        converter = pybamm2julia.JuliaConverter(
+            input_parameter_order = input_parameter_order,
+            cache_type = cache_type,
+            inline = true,
+            preallocate = preallocate
         )
+        converter.convert_tree_to_intermediate(built_model.concatenated_rhs)
+        fn_str = converter.build_julia_code(funcname=name)
+        get_consistent_ics_solver = nothing
     else
-        fn_str, u0_str = sim.built_model.generate_julia_diffeq(
-            input_parameter_order=input_parameter_order, 
-            dae_type=dae_type, 
-            get_consistent_ics_solver=nothing,
+        if dae_type == "semi-explicit"
+            len_rhs = nothing
+            get_consistent_ics_solver = nothing
+        else
+            len_rhs = built_model.concatenated_rhs.size
+            get_consistent_ics_solver = pybamm.CasadiSolver()
+        end
+        converter = pybamm2julia.JuliaConverter(
+            dae_type=dae_type,
+            input_parameter_order=input_parameter_order,
+            cache_type=cache_type,
+            inline=true,
             preallocate=preallocate,
-            cache_type=cache_type
         )
+        converter.convert_tree_to_intermediate(
+            pybamm.numpy_concatenation(
+                built_model.concatenated_rhs, built_model.concatenated_algebraic
+            ),
+            len_rhs=len_rhs
+        )
+        fn_str = converter.build_julia_code(funcname=name)
     end
 
+    if get_consistent_ics_solver == nothing
+        ics = built_model.concatenated_initial_conditions
+    else
+        get_consistent_ics_solver.set_up(built_model)
+        get_consistent_ics_solver._set_initial_conditions(built_model,pydict(),false)
+        ics = pybamm.Vector(built_model.y0.full())
+    end
+    ics = pybamm.Addition(ics,pybamm.Scalar(0))
+    ics_converter = pybamm2julia.JuliaConverter(
+        input_parameter_order=input_parameter_order,
+        cache_type=cache_type,
+        inline=true,
+        preallocate=true,
+    )
+    ics_converter.convert_tree_to_intermediate(ics)
+    ics_str = ics_converter.build_julia_code(funcname=pyconvert(Any,name) * "_ics")
+    ics_str = ics_str.replace("(dy, y, p, t)", "(dy, p)")
+
     fn_str = string(fn_str)
-    u0_str = string(u0_str)
+    u0_str = string(ics_str)
 
     # PyBaMM-generated functions
     sim_fn! = runtime_eval(Meta.parse(fn_str))
     u0_fn! = runtime_eval(Meta.parse(u0_str))
-    
-
 
     # Evaluate initial conditions
     len_y = convert(Int, pyconvert(Int,sim.built_model.len_rhs_and_alg))

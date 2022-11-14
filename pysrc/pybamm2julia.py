@@ -365,7 +365,7 @@ class JuliaConverter(object):
         elif isinstance(symbol, pybamm.Time):
             my_id = symbol.id
             self._intermediate[my_id] = JuliaTime(my_id)
-        elif isinstance(symbol, pybamm.PsuedoInputParameter):
+        elif isinstance(symbol, PsuedoInputParameter):
             if self._black_box and not self._override_psuedo:
                 my_id = symbol.id
                 name = symbol.name
@@ -720,7 +720,7 @@ class JuliaConverter(object):
 
     # this function will be the top level.
     def convert_tree_to_intermediate(self, symbol, len_rhs=None):
-        if isinstance(symbol, pybamm.PybammJuliaFunction):
+        if isinstance(symbol, PybammJuliaFunction):
             # need to hash this out a bit more.
             self._black_box = True
             self._inplace = symbol.inplace
@@ -728,7 +728,7 @@ class JuliaConverter(object):
             self.inputs = []
             for child in symbol.children:
                 if (
-                    isinstance(child, pybamm.PsuedoInputParameter)
+                    isinstance(child, PsuedoInputParameter)
                     and symbol.name not in self.inputs
                 ):
                     self.inputs.append(child.name)
@@ -761,7 +761,7 @@ class JuliaConverter(object):
                 else:
                     symbol_minus_dy.append(child)
             symbol = pybamm.numpy_concatenation(*symbol_minus_dy)
-        if isinstance(symbol, pybamm.PybammJuliaFunction):
+        if isinstance(symbol, PybammJuliaFunction):
             self._convert_tree_to_intermediate(symbol.expr)
         else:
             self._convert_tree_to_intermediate(symbol)
