@@ -8,3 +8,4 @@ using SparseArrays, LinearAlgebra
 @safetestset "Test Event Handling" begin include("test_events.jl") end
 @safetestset "Test caches" begin include("test_caches.jl") end
 @safetestset "Test jacobians" begin include("test_jacobian.jl") end
+@safetestset "Test pack modeling" begin include("test_pack.jl") end

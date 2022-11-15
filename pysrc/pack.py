@@ -14,6 +14,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
+import pybamm2julia
 
 
 class offsetter(object):
@@ -33,10 +34,9 @@ class offsetter(object):
                     step = this_slice.step
                     new_slice = slice(start, stop, step)
                     new_y_slices += (new_slice,)
-                symbol.replace_y_slices(*new_y_slices)
+                self.replace_y_slices(symbol, *new_y_slices)
                 symbol.set_id()
                 self._sv_done += [symbol.id]
-
         elif isinstance(symbol, pybamm.StateVectorDot):
             # need to make sure its in place
             if symbol.id not in self._sv_done:
@@ -46,7 +46,7 @@ class offsetter(object):
                     step = this_slice.step
                     new_slice = slice(start, stop, step)
                     new_y_slices += (new_slice,)
-                symbol.replace_y_slices(*new_y_slices)
+                self.replace_y_slices(symbol, *new_y_slices)
                 symbol.set_id()
                 self._sv_done += [symbol.id]
         else:
@@ -54,7 +54,33 @@ class offsetter(object):
                 self.add_offset_to_state_vectors(child)
                 child.set_id()
             symbol.set_id()
-
+            
+    def replace_y_slices(self, symbol, *new_y_slices):
+        for y_slice in new_y_slices:
+            if not isinstance(y_slice, slice):
+                raise TypeError("all y_slices must be slice objects")
+        name_split = symbol.name.split("[")
+        base_name = name_split[0]
+        if new_y_slices[0].start is None:
+            name = base_name + "[:{:d}".format(y_slice.stop)
+        else:
+            name = base_name + "[{:d}:{:d}".format(
+                new_y_slices[0].start, new_y_slices[0].stop
+            )
+        if len(new_y_slices) > 1:
+            name += ",{:d}:{:d}".format(new_y_slices[1].start, new_y_slices[1].stop)
+            if len(new_y_slices) > 2:
+                name += ",...,{:d}:{:d}]".format(
+                    new_y_slices[-1].start, new_y_slices[-1].stop
+                )
+            else:
+                name += "]"
+        else:
+            name += "]"
+        symbol._y_slices = new_y_slices
+        symbol._first_point = new_y_slices[0].start
+        symbol._last_point = new_y_slices[-1].stop
+        symbol.set_evaluation_array(new_y_slices, None)
 
 class Pack(object):
     def __init__(
@@ -82,7 +108,7 @@ class Pack(object):
         if parameter_values is None:
             parameter_values = model.default_parameter_values
 
-        cell_current = pybamm.PsuedoInputParameter("cell_current")
+        cell_current = pybamm2julia.PsuedoInputParameter("cell_current")
         self.cell_current = cell_current
         parameter_values.update({"Current function [A]": cell_current})
 
@@ -90,7 +116,7 @@ class Pack(object):
             self.pack_ambient = pybamm.Scalar(
                 parameter_values["Ambient temperature [K]"]
             )
-            ambient_temperature = pybamm.PsuedoInputParameter("ambient_temperature")
+            ambient_temperature = pybamm2julia.PsuedoInputParameter("ambient_temperature")
             self.ambient_temperature = ambient_temperature
             parameter_values.update({"Ambient temperature [K]": ambient_temperature})
 
@@ -121,26 +147,26 @@ class Pack(object):
             dsv = pybamm.StateVectorDot(slice(0,self.len_cell_rhs))
             if self._implicit:
                 if self._thermal:
-                    self.cell_model = pybamm.PybammJuliaFunction(
+                    self.cell_model = pybamm2julia.PybammJuliaFunction(
                         [sv, cell_current, ambient_temperature, dsv],
                         self.cell_model,
                         "cell!",
                         True,
                     )
                 else:
-                    self.cell_model = pybamm.PybammJuliaFunction(
+                    self.cell_model = pybamm2julia.PybammJuliaFunction(
                         [sv, cell_current, dsv], self.cell_model, "cell!", True
                     )
             else:
                 if self._thermal:
-                    self.cell_model = pybamm.PybammJuliaFunction(
+                    self.cell_model = pybamm2julia.PybammJuliaFunction(
                         [sv, cell_current, ambient_temperature],
                         self.cell_model,
                         "cell!",
                         True,
                     )
                 else:
-                    self.cell_model = pybamm.PybammJuliaFunction(
+                    self.cell_model = pybamm2julia.PybammJuliaFunction(
                         [sv, cell_current], self.cell_model, "cell!", True
                     )
         self._sv_done = []
@@ -328,9 +354,9 @@ class Pack(object):
             len_sv = len(cells)*self.cell_size + len(pack_eqs_vec)
             sv = pybamm.StateVector(slice(0,len_sv))
             dsv = pybamm.StateVectorDot(slice(0,len_sv))
-            p = pybamm.PsuedoInputParameter("lolol")
+            p = pybamm2julia.PsuedoInputParameter("lolol")
             t = pybamm.Time()
-            self.pack = pybamm.PybammJuliaFunction(
+            self.pack = pybamm2julia.PybammJuliaFunction(
                 [dsv, sv, p, t], self.pack, "pack", True
             )
         self.ics = self.initialize_pack(num_loops, len(curr_sources))

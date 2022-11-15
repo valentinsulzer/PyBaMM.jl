@@ -8,6 +8,13 @@ from collections import OrderedDict
 from math import floor
 import graphlib
 
+jl_name_dict = {
+    pybamm.Max : "maximum",
+    pybamm.Min : "minimum",
+    pybamm.Arcsinh : "asinh",
+    pybamm.Arctan : "atan"
+}
+
 
 class PsuedoInputParameter(pybamm.InputParameter):
     def create_copy(self):
@@ -302,7 +309,7 @@ class JuliaConverter(object):
 
             self._intermediate[my_id] = JuliaIndex(id_lower, my_id, index, shape)
         elif isinstance(symbol, pybamm.Min) or isinstance(symbol, pybamm.Max):
-            my_jl_name = symbol.julia_name
+            my_jl_name = jl_name_dict[type(symbol)]
             my_shape = (1, 1)
             this_input = self._convert_tree_to_intermediate(symbol.children[0])
             my_id = symbol.id
@@ -310,7 +317,9 @@ class JuliaConverter(object):
                 my_jl_name, this_input, my_id, my_shape
             )
         elif isinstance(symbol, pybamm.Function):
-            my_jl_name = symbol.julia_name
+            my_jl_name = jl_name_dict.get(type(symbol))
+            if my_jl_name is None:
+                my_jl_name = symbol.__class__.__name__.lower()
             my_shape = symbol.children[0].shape
             this_input = self._convert_tree_to_intermediate(symbol.children[0])
             my_id = symbol.id
