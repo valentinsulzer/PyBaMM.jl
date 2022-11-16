@@ -31,9 +31,12 @@ using PyBaMM
   myconverter.convert_tree_to_intermediate(pack.pack)
   pack_str = myconverter.build_julia_code()
 
-  ics_vector = pack.ics
-  np_vec = ics_vector.evaluate()
-  jl_vec = vec(pyconvert(Array{Float64}, np_vec))
+  icconverter = pybamm2julia.JuliaConverter(override_psuedo = true)
+  icconverter.convert_tree_to_intermediate(pack.ics)
+  ic_str = icconverter.build_julia_code()
+  
+  u0 = eval(Meta.parse(pyconvert(String,ic_str)))
+  jl_vec = u0()
 
   pack_str = pyconvert(String, pack_str)
   jl_func = eval(Meta.parse(pack_str))
@@ -51,10 +54,6 @@ using PyBaMM
   myconverter = pybamm2julia.JuliaConverter(cache_type = "dual")
   myconverter.convert_tree_to_intermediate(pack.pack)
   pack_str = myconverter.build_julia_code()
-
-  ics_vector = pack.ics
-  np_vec = ics_vector.evaluate()
-  jl_vec = vec(pyconvert(Array{Float64}, np_vec))
 
   pack_voltage_index = Np + 1
   pack_voltage = 1.0
