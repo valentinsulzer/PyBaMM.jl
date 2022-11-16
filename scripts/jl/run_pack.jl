@@ -2,15 +2,19 @@ using PyBaMM
 using LinearSolve
 using TerminalLoggers
 using JLD2
+using Plots
+plotly()
 
 pybamm = pyimport("pybamm")
-lp = pyimport("liionpack")
+pybamm2julia = pyimport("pybamm2julia")
+setup_circuit = pyimport("setup_circuit")
+pybamm_pack = pyimport("pack")
 
 
-Np = 10
-Ns = 20
+Np = 3
+Ns = 3
 
-curr = 6.5
+curr = 0.6*Np
 
 p = nothing 
 t = 0.0
@@ -21,16 +25,16 @@ options = Dict("thermal" => "lumped")
 
 model = pybamm.lithium_ion.DFN(name="DFN", options=options)
 
-netlist = lp.setup_circuit(Np, Ns, I=curr)
+netlist = setup_circuit.setup_circuit(Np, Ns, I=curr)
     
-    pybamm_pack = pybamm.Pack(model, netlist, functional=functional, thermal=true)
+    pybamm_pack = pybamm_pack.Pack(model, netlist, functional=functional, thermal=true, left_bc = "symmetry")
     pybamm_pack.build_pack()
 
     timescale = pyconvert(Float64,pybamm_pack.timescale.evaluate())
     
 
     if functional
-        cellconverter = pybamm.JuliaConverter(cache_type = "symbolic", inplace=true)
+        cellconverter = pybamm2julia.JuliaConverter(cache_type = "symbolic", inplace=true)
         cellconverter.convert_tree_to_intermediate(pybamm_pack.cell_model)
         cell_str = cellconverter.build_julia_code()
         cell_str = pyconvert(String, cell_str)
@@ -39,7 +43,7 @@ netlist = lp.setup_circuit(Np, Ns, I=curr)
         cell_str = ""
     end
 
-    myconverter = pybamm.JuliaConverter(cache_type = "symbolic")
+    myconverter = pybamm2julia.JuliaConverter(cache_type = "symbolic")
     myconverter.convert_tree_to_intermediate(pybamm_pack.pack)
     pack_str = myconverter.build_julia_code()
 
@@ -58,7 +62,7 @@ netlist = lp.setup_circuit(Np, Ns, I=curr)
     
 
     if functional
-        cellconverter = pybamm.JuliaConverter(cache_type = "dual", inplace=true)
+        cellconverter = pybamm2julia.JuliaConverter(cache_type = "dual", inplace=true)
         cellconverter.convert_tree_to_intermediate(pybamm_pack.cell_model)
         cell_str = cellconverter.build_julia_code()
         cell_str = pyconvert(String, cell_str)
@@ -67,7 +71,7 @@ netlist = lp.setup_circuit(Np, Ns, I=curr)
         cell_str = ""
     end
 
-    myconverter = pybamm.JuliaConverter(cache_type = "dual")
+    myconverter = pybamm2julia.JuliaConverter(cache_type = "dual")
     myconverter.convert_tree_to_intermediate(pybamm_pack.pack)
     pack_str = myconverter.build_julia_code()
     open("pack20x10.jl","w") do io
@@ -111,14 +115,5 @@ function incompletelu(W,du,u,p,t,newW,Plprev,Prprev,solverdata)
 end
 
 
-@time solve(prob, Trapezoid(linsolve=KrylovJL_GMRES(),precs=incompletelu,concrete_jac=true))
-@time sol = solve(prob, Trapezoid(linsolve=KrylovJL_GMRES(),precs=incompletelu,concrete_jac=true))
-
-sol_arr = Array(sol)
-sol_t = Array(sol.t)
-
-@save "20x10pack_arjuna.jld2" sol_arr sol_t
-
-sleep(100)
-
+sol = solve(prob, Trapezoid(linsolve=KLUFactorization(),concrete_jac=true))
 
