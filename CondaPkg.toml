@@ -2,3 +2,6 @@
 pybamm = ""
 networkx = ""
 python = "=3.9"
+
+[pip.deps]
+qtconsole = ""

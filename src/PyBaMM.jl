@@ -42,9 +42,6 @@ export build_callback
 include("symcache.jl")
 export DiffCache,get_tmp,symcache
 
-include("build_pack.jl")
-export build_pack
-
 include("jacobian.jl")
 export generate_jacobian
 

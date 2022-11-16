@@ -23,7 +23,7 @@ pybamm=pyimport("pybamm")
     # Solve in python
     sol_pybamm = sim.solve(t)
     V_pybamm = pyconvert(Array{Float64},get(sol_pybamm, "Terminal voltage [V]",nothing).data)
-    @test all(isapprox.(V_pybamm, V, atol=1e-3))
+    @test all(isapprox.(V_pybamm, V, atol=1e-2))
 end
 
 @testset "Symbolic Cache ODE" begin
@@ -44,7 +44,7 @@ end
     # Solve in python
     sol_pybamm = sim.solve(t)
     V_pybamm = pyconvert(Array{Float64},get(sol_pybamm, "Terminal voltage [V]",nothing).data)
-    @test all(isapprox.(V_pybamm, V, atol=1e-3))
+    @test all(isapprox.(V_pybamm, V, atol=1e-2))
 end
 
 
@@ -64,7 +64,7 @@ end
     # Solve in python
     sol_pybamm = sim.solve(t)
     V_pybamm = pyconvert(Array{Float64},get(sol_pybamm, "Terminal voltage [V]",nothing).data)
-    @test all(isapprox.(V_pybamm, V, atol=1e-3))
+    @test all(isapprox.(V_pybamm, V, atol=1e-2))
 end
 
 @testset "Dual Cache Implicit DAE" begin
@@ -83,7 +83,7 @@ end
     # Solve in python
     sol_pybamm = sim.solve(t)
     V_pybamm = pyconvert(Array{Float64},get(sol_pybamm, "Terminal voltage [V]",nothing).data)
-    @test all(isapprox.(V_pybamm, V, atol=1e-3))
+    @test all(isapprox.(V_pybamm, V, atol=1e-2))
 end
 
 #=
