@@ -7,6 +7,9 @@ import scipy
 from collections import OrderedDict
 from math import floor
 import graphlib
+import sys
+rng = np.random.default_rng()
+
 
 jl_name_dict = {
     pybamm.Max : "maximum",
@@ -40,6 +43,28 @@ class PsuedoInputParameter(pybamm.InputParameter):
             for child in symbol.children:
                 self.set_psuedo(child, expr)
         symbol.set_id()
+
+class DistributionParameter(PsuedoInputParameter):
+    def __init__(self, name, mean, std):
+        self._mean = mean
+        self._std = std
+        super().__init__(name)
+    
+    def sample(self):
+        expr = pybamm.Scalar(rng.normal(self._mean, self._std))
+        return expr
+    
+    def sample_and_set(self, symbols):
+        expr = self.sample()
+        for symbol in symbols:
+            self.set_psuedo(symbol, expr)
+    
+    def create_copy(self):
+        """See :meth:`pybamm.Symbol.new_copy()`."""
+        new_input_parameter = DistributionParameter(
+            self.name, self._mean, self._std
+        )
+        return new_input_parameter
 
 
 def remove_lines_with(input_string, pattern):
@@ -541,6 +566,7 @@ class JuliaConverter(object):
 
     def write_const(self, value):
         if isinstance(value, np.ndarray):
+            np.set_printoptions(threshold=sys.maxsize)
             val_string = value
         elif isinstance(value, scipy.sparse._csr.csr_matrix):
             row, col, data = scipy.sparse.find(value)
@@ -664,7 +690,8 @@ class JuliaConverter(object):
 
         for this_input in self.inputs:
             header_string = header_string + this_input + ","
-        header_string = header_string[:-1]
+        if self.inputs != []:
+            header_string = header_string[:-1]
         header_string += ")\n"
         self._function_string = header_string + self._function_string
         return 0
@@ -817,7 +844,7 @@ class JuliaJuliaFunction(object):
         else:
             code = "{} .= {}(".format(result_var_name, self.name)
         for this_input in input_var_names:
-            code = code + this_input + ","
+            code = code + str(this_input) + ","
         code = code[:-1] + ")\n"
 
         # black box always generates a cache.

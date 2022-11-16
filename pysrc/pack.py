@@ -95,7 +95,8 @@ class Pack(object):
         top_bc = "ambient",
         bottom_bc = "ambient",
         left_bc = "ambient",
-        right_bc = "ambient"
+        right_bc = "ambient",
+        distribution_params = None
     ):
         # this is going to be a work in progress for a while:
         # for now, will just do it at the julia level
@@ -115,6 +116,24 @@ class Pack(object):
 
         if parameter_values is None:
             parameter_values = model.default_parameter_values
+        
+        self._distribution_params = {}
+        if distribution_params is not None:
+            if not self.functional:
+                raise NotImplementedError(
+                    "Distribution Parameters only works with functional packs!"
+                )
+            for param in distribution_params:
+                dp = pybamm2julia.DistributionParameter(
+                    distribution_params[param]["name"],
+                    distribution_params[param]["mean"],
+                    distribution_params[param]["stddev"]
+                )
+                parameter_values[param] = dp
+                self._distribution_params[param] = dp
+        else:
+            self._distribution_params = None
+
 
         cell_current = pybamm2julia.PsuedoInputParameter("cell_current")
         self.cell_current = cell_current
@@ -149,36 +168,43 @@ class Pack(object):
         self.len_cell_algebraic = sim.built_model.len_alg
 
         self.cell_size = self.cell_model.shape[0]
+        self.built_model = sim.built_model
+
 
         if self.functional:
             sv = pybamm.StateVector(slice(0, self.cell_size))
             dsv = pybamm.StateVectorDot(slice(0,self.len_cell_rhs))
+            if self._distribution_params is None:
+                lsv = []
+            else:
+                lsv = list(self._distribution_params.values())
+
             if self._implicit:
                 if self._thermal:
                     self.cell_model = pybamm2julia.PybammJuliaFunction(
-                        [sv, cell_current, ambient_temperature, dsv],
+                        [sv, cell_current, ambient_temperature, dsv] + lsv,
                         self.cell_model,
                         "cell!",
                         True,
                     )
                 else:
                     self.cell_model = pybamm2julia.PybammJuliaFunction(
-                        [sv, cell_current, dsv], self.cell_model, "cell!", True
+                        [sv, cell_current, dsv] + lsv, self.cell_model, "cell!", True
                     )
             else:
                 if self._thermal:
                     self.cell_model = pybamm2julia.PybammJuliaFunction(
-                        [sv, cell_current, ambient_temperature],
+                        [sv, cell_current, ambient_temperature] + lsv,
                         self.cell_model,
                         "cell!",
                         True,
                     )
                 else:
                     self.cell_model = pybamm2julia.PybammJuliaFunction(
-                        [sv, cell_current], self.cell_model, "cell!", True
+                        [sv, cell_current] + lsv, self.cell_model, "cell!", True
                     )
         self._sv_done = []
-        self.built_model = sim.built_model
+
 
         self.netlist = netlist
         self.process_netlist()
@@ -223,6 +249,7 @@ class Pack(object):
         # at some point need to figure out parameters
         my_offsetter = offsetter(self.offset)
         my_offsetter.add_offset_to_state_vectors(new_model)
+
         new_model.set_id()
         return new_model
 
@@ -263,7 +290,6 @@ class Pack(object):
                     is_horz = (abs(x_diff) == 1) and other_y == batt_y
                     if is_vert or is_horz:
                         neighbors.append(other_desc)
-            ambient_start = len(neighbors)
             num_neighbors = len(neighbors)
             if len(neighbors) > 0:
                 expr = self.batteries[neighbors[0]]["temperature"]
@@ -363,6 +389,7 @@ class Pack(object):
                     "cell": new_cell,
                     "voltage": terminal_voltage,
                     "current_replaced": False,
+                    "ics": self.built_model.concatenated_initial_conditions
                 }
                 if self._thermal:
                     node1_x = row["node1_x"]
@@ -378,6 +405,11 @@ class Pack(object):
                     self.batteries[desc].update(
                         {"x": node1_x, "y": batt_y, "temperature": temperature}
                     )
+                if self._distribution_params is not None:
+                    for param in self._distribution_params:
+                        self._distribution_params[param].sample_and_set(
+                            [self.batteries[desc]["cell"], self.batteries[desc]["ics"]]
+                        )
                 self.batteries[desc].update({"offset": self.offset})
                 self.offset += self.cell_size
 
@@ -411,7 +443,7 @@ class Pack(object):
             self.pack = pybamm2julia.PybammJuliaFunction(
                 [dsv, sv, p, t], self.pack, "pack", True
             )
-        self.ics = self.initialize_pack(num_loops, len(curr_sources))
+        self.ics = self.initialize_pack(len(loop_currents),1)
 
     def initialize_pack(self, num_loops, num_curr_sources):
         curr_ics = pybamm.Vector([1.0 for curr_source in range(num_loops)])
@@ -420,12 +452,13 @@ class Pack(object):
         )
         cell_ics = pybamm.numpy_concatenation(
             *[
-                self.built_model.concatenated_initial_conditions
-                for n in range(len(self.batteries))
+                self.batteries[desc]["ics"]
+                for desc in self.batteries
             ]
         )
-        ics = pybamm.numpy_concatenation(*[curr_ics, curr_source_v_ics, cell_ics])
-        return ics
+        ics_function = pybamm.numpy_concatenation(*[curr_ics, curr_source_v_ics, cell_ics])
+        ics_jl = pybamm2julia.PybammJuliaFunction([],ics_function,"u0!",inplace=False)
+        return ics_jl
 
     def build_pack_equations(self, loop_currents, curr_sources):
         # start by looping through the loop currents. Sum Voltages
