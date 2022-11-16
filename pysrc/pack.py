@@ -92,12 +92,20 @@ class Pack(object):
         thermal=False,
         build_jac=False,
         implicit=False,
+        top_bc = "ambient",
+        bottom_bc = "ambient",
+        left_bc = "ambient",
+        right_bc = "ambient"
     ):
         # this is going to be a work in progress for a while:
         # for now, will just do it at the julia level
 
         # Build the cell expression tree with necessary parameters.
         # think about moving this to a separate function.
+        self.top_bc = top_bc
+        self.bottom_bc = bottom_bc
+        self.left_bc = left_bc
+        self.right_bc = right_bc
 
         self._implicit = implicit
 
@@ -238,6 +246,8 @@ class Pack(object):
             batt_x = batt["x"]
             batt_y = batt["y"]
             neighbors = []
+            x_diffs = []
+            y_diffs = []
             for other_desc in self.batteries:
                 if other_desc == desc:
                     # its the same battery
@@ -245,21 +255,63 @@ class Pack(object):
                 else:
                     other_x = self.batteries[other_desc]["x"]
                     other_y = self.batteries[other_desc]["y"]
-                    is_vert = (abs(other_y - batt_y) == 3) and other_x == batt_x
-                    is_horz = (abs(other_x - batt_x) == 1) and other_y == batt_y
+                    y_diff = other_y - batt_y
+                    x_diff = other_x - batt_x
+                    x_diffs.append(x_diff)
+                    y_diffs.append(y_diff)
+                    is_vert = (abs(y_diff) == 3) and other_x == batt_x
+                    is_horz = (abs(x_diff) == 1) and other_y == batt_y
                     if is_vert or is_horz:
                         neighbors.append(other_desc)
             ambient_start = len(neighbors)
+            num_neighbors = len(neighbors)
             if len(neighbors) > 0:
                 expr = self.batteries[neighbors[0]]["temperature"]
             else:
                 expr = self.pack_ambient
             for neighbor in neighbors[1:]:
                 expr += self.batteries[neighbor]["temperature"]
-            for ambient_aux in range(ambient_start, 4):
-                neighbors.append(self.pack_ambient)
-                expr += self.pack_ambient
-            expr = expr / 4
+            #Left Cell
+            if all([x_diff <= 0.1 for x_diff in x_diffs]):
+                if self.left_bc == "ambient":
+                    neighbors.append(self.pack_ambient)
+                    expr += self.pack_ambient
+                    num_neighbors += 1
+                elif self.left_bc == "symmetry":
+                    pass
+                else:
+                    raise NotImplementedError("BC's must be ambient or symmetry")
+            #Right Cell
+            if all([x_diff >= 0 for x_diff in x_diffs]):
+                if self.right_bc == "ambient":
+                    neighbors.append(self.pack_ambient)
+                    expr += self.pack_ambient
+                    num_neighbors += 1
+                elif self.top_bc == "symmetry":
+                    pass
+                else:
+                    raise NotImplementedError("BC's must be ambient or symmetry")
+            #Top Cell
+            if all([y_diff <= 0 for y_diff in y_diffs]):
+                if self.top_bc == "ambient":
+                    neighbors.append(self.pack_ambient)
+                    expr += self.pack_ambient
+                    num_neighbors += 1
+                elif self.top_bc == "symmetry":
+                    pass
+                else:
+                    raise NotImplementedError("BC's must be ambient or symmetry")
+            #Bottom Cell
+            if all([y_diff >= 0 for y_diff in y_diffs]):
+                if self.bottom_bc == "ambient":
+                    neighbors.append(self.pack_ambient)
+                    expr += self.pack_ambient
+                    num_neighbors += 1
+                elif self.bottom_bc == "symmetry":
+                    pass
+                else:
+                    raise NotImplementedError("BC's must be ambient or symmetry")
+            expr = expr / num_neighbors
             self.ambient_temperature.set_psuedo(self.batteries[desc]["cell"], expr)
             if self.build_jac:
                 self.ambient_temperature.set_psuedo(
