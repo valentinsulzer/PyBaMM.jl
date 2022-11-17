@@ -89,6 +89,7 @@ class Pack(object):
         netlist,
         parameter_values=None,
         functional=False,
+        voltage_functional=False,
         thermal=False,
         build_jac=False,
         implicit=False,
@@ -111,6 +112,9 @@ class Pack(object):
         self._implicit = implicit
 
         self.functional = functional
+        self.voltage_functional = voltage_functional
+        if self.voltage_functional:
+            self.voltage_func = None
         self.build_jac = build_jac
         self._thermal = thermal
 
@@ -256,6 +260,16 @@ class Pack(object):
     def get_new_terminal_voltage(self):
         symbol = deepcopy(self.built_model.variables["Terminal voltage [V]"])
         my_offsetter = offsetter(self.offset)
+        if self.voltage_functional:
+            sv = pybamm.StateVector(slice(0,self.len_cell_rhs+self.len_cell_algebraic))
+            if self.voltage_func is None:
+                if self._distribution_params is not None:
+                    ldp = list(self._distribution_params)
+                else:
+                    ldp = []
+                voltage_func = pybamm2julia.PybammJuliaFunction([sv, self.cell_current] + ldp, symbol, "voltage_func", True)
+                self.voltage_func = voltage_func
+            symbol = deepcopy(self.voltage_func)
         my_offsetter.add_offset_to_state_vectors(symbol)
         return symbol
 
@@ -411,6 +425,8 @@ class Pack(object):
                         expr = self._distribution_params[param].sample()
                         self._distribution_params[param].set_psuedo(self.batteries[desc]["cell"], expr)
                         self._distribution_params[param].set_psuedo(self.batteries[desc]["ics"], expr)
+                        if self.voltage_functional:
+                            self._distribution_params[param].set_psuedo(self.batteries[desc]["cell"], expr)
                         params.update({self._distribution_params[param] : expr})
                         
                 self.batteries[desc].update({"offset": self.offset})
@@ -533,14 +549,13 @@ class Pack(object):
                         voltage = self.batteries[
                             self.circuit_graph.edges[edge]["desc"]
                         ]["voltage"]
-                        if isinstance(self.unbuilt_model, pybamm.lithium_ion.SPM) or isinstance(self.unbuilt_model, pybamm.lithium_ion.SPMe):
+                        if isinstance(self.unbuilt_model, pybamm.lithium_ion.SPM) or isinstance(self.unbuilt_model, pybamm.lithium_ion.SPMe) or self.voltage_functional:
                             self.cell_current.set_psuedo(
                                     self.batteries[
                                         self.circuit_graph.edges[edge]["desc"]
                                     ]["voltage"],
                                     expr,
                                 )
-
                         if (
                             direction[0]
                             == self.circuit_graph.edges[edge]["positive_node"]
