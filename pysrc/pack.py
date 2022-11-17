@@ -405,12 +405,16 @@ class Pack(object):
                     self.batteries[desc].update(
                         {"x": node1_x, "y": batt_y, "temperature": temperature}
                     )
+                params = {}
                 if self._distribution_params is not None:
                     for param in self._distribution_params:
-                        self._distribution_params[param].sample_and_set(
-                            [self.batteries[desc]["cell"], self.batteries[desc]["ics"]]
-                        )
+                        expr = self._distribution_params[param].sample()
+                        self._distribution_params[param].set_psuedo(self.batteries[desc]["cell"], expr)
+                        self._distribution_params[param].set_psuedo(self.batteries[desc]["ics"], expr)
+                        params.update({self._distribution_params[param] : expr})
+                        
                 self.batteries[desc].update({"offset": self.offset})
+                self.batteries[desc].update({"distribution parameters" : params})
                 self.offset += self.cell_size
 
         if self._thermal:

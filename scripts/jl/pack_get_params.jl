@@ -8,12 +8,12 @@ using JLD2
 pybamm = pyimport("pybamm")
 pybamm2julia = pyimport("pybamm2julia")
 setup_circuit = pyimport("setup_circuit")
-pybamm_pack = pyimport("pack")
+pack = pyimport("pack")
 
 Np = 2
 Ns = 2
 
-curr = 1.8
+curr = 1.2
 
 p = nothing 
 t = 0.0
@@ -33,8 +33,7 @@ distribution_params = Dict(
 
 distribution_params = pydict(distribution_params)
     
-pybamm_pack = pybamm_pack.Pack(model, netlist, functional=functional, thermal=true, distribution_params = distribution_params)
-#pybamm_pack = pybamm_pack.Pack(model, netlist, functional=functional, thermal=true)
+pybamm_pack = pack.Pack(model, netlist, functional=functional, thermal=true, distribution_params = distribution_params)
 pybamm_pack.build_pack()
 
 
@@ -105,15 +104,33 @@ mass_matrix = sparse(diagm(differential_vars))
 func = ODEFunction(jl_func, mass_matrix=mass_matrix,jac_prototype=jac_sparsity)
 prob = ODEProblem(func, jl_vec, (0.0, 3600/timescale), nothing)
 
-using IncompleteLU
-function incompletelu(W,du,u,p,t,newW,Plprev,Prprev,solverdata)
-if newW === nothing || newW
-Pl = ilu(convert(AbstractMatrix,W), τ = 50.0)
-else
-Pl = Plprev
-end
-Pl,nothing
-end
-
 
 sol = solve(prob, Trapezoid(linsolve=KLUFactorization(),concrete_jac=true))
+
+pycopy = pyimport("copy")
+
+sv = pybamm.StateVector(pyslice(0,1))
+
+vars_of_interest = [
+    "Terminal voltage [V]",
+    "Cell temperature [K]", 
+    "Current [A]",
+    "Positive electrolyte concentration [mol.m-3]",
+    "Separator electrolyte concentration [mol.m-3]",
+    "Negative electrolyte concentration [mol.m-3]",
+    "Positive particle concentration [mol.m-3]",
+    "Negative particle concentration [mol.m-3]",
+    "Positive electrolyte potential [V]",
+    "Separator electrolyte potential [V]",
+    "Negative electrolyte potential [V]",
+    "Positive electrode potential [V]",
+    "Negative electrode potential [V]",
+    "x [m]",
+    "x_p [m]",
+    "x_s [m]",
+    "x_n [m]",
+    "r_p [m]",
+    "r_n [m]"
+]
+
+saved_vars = get_pack_variables(pybamm_pack, sol, vars_of_interest)

@@ -16,18 +16,20 @@ using Reexport
 @reexport using Sundials
 
 const pybamm = PythonCall.pynew()
-const pybamm_pack = PythonCall.pynew()
+const pack = PythonCall.pynew()
 const pybamm2julia = PythonCall.pynew()
 const setup_circuit = PythonCall.pynew()
 const sys = PythonCall.pynew()
+const pycopy = PythonCall.pynew()
 
 function __init__()
     PythonCall.pycopy!(sys, pyimport("sys"))
     sys.path.append(joinpath(@__DIR__,"../pysrc"))
     PythonCall.pycopy!(pybamm, pyimport("pybamm"))
-    PythonCall.pycopy!(pybamm_pack, pyimport("pack"))
+    PythonCall.pycopy!(pack, pyimport("pack"))
     PythonCall.pycopy!(pybamm2julia, pyimport("pybamm2julia"))
     PythonCall.pycopy!(setup_circuit, pyimport("setup_circuit"))
+    PythonCall.pycopy!(pycopy, pyimport("copy"))
 end
 
 include("diffeq_problems.jl")
@@ -44,5 +46,8 @@ export DiffCache,get_tmp,symcache
 
 include("jacobian.jl")
 export generate_jacobian
+
+include("pack_postprocessing.jl")
+export get_pack_variables
 
 end # module
