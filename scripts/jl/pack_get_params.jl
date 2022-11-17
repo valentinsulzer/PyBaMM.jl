@@ -10,8 +10,8 @@ pybamm2julia = pyimport("pybamm2julia")
 setup_circuit = pyimport("setup_circuit")
 pybamm_pack = pyimport("pack")
 
-Np = 2
-Ns = 2
+Np = 3
+Ns = 3
 
 curr = 1.8
 
@@ -33,8 +33,7 @@ distribution_params = Dict(
 
 distribution_params = pydict(distribution_params)
     
-pybamm_pack = pybamm_pack.Pack(model, netlist, functional=functional, thermal=true, distribution_params = distribution_params)
-#pybamm_pack = pybamm_pack.Pack(model, netlist, functional=functional, thermal=true)
+pybamm_pack = pybamm_pack.Pack(model, netlist, functional=functional, thermal=true)
 pybamm_pack.build_pack()
 
 
@@ -105,15 +104,71 @@ mass_matrix = sparse(diagm(differential_vars))
 func = ODEFunction(jl_func, mass_matrix=mass_matrix,jac_prototype=jac_sparsity)
 prob = ODEProblem(func, jl_vec, (0.0, 3600/timescale), nothing)
 
-using IncompleteLU
-function incompletelu(W,du,u,p,t,newW,Plprev,Prprev,solverdata)
-if newW === nothing || newW
-Pl = ilu(convert(AbstractMatrix,W), τ = 50.0)
-else
-Pl = Plprev
-end
-Pl,nothing
-end
-
 
 sol = solve(prob, Trapezoid(linsolve=KLUFactorization(),concrete_jac=true))
+
+pycopy = pyimport("copy")
+
+sv = pybamm.StateVector(pyslice(0,1))
+
+vars_of_interest = [
+    "Terminal voltage [V]",
+    "Cell temperature [K]", 
+    "Positive electrolyte concentration [mol.m-3]",
+    "Separator electrolyte concentration [mol.m-3",
+    "Negative electrolyte concentration [mol.m-3]",
+    "Current [A]"
+]
+
+
+saved_vars = Dict{String, Any}(var_of_interest=>[] for var_of_interest in vars_of_interest)
+for var_of_interest in vars_of_interest
+    expr = 0
+    if var_of_interest == "Current [A]"
+        base_expr = pybamm_pack.batteries[battery]["cell"].children[1].children[0]
+        expr = pybamm2julia.PybammJuliaFunction([sv],base_expr,"f",false)
+    else
+        base_expr = pybamm2julia.PybammJuliaFunction([sv],pybamm_pack.built_model.variables[var_of_interest],"f",false)
+        expr = pycopy.deepcopy(base_expr)
+        offset = pybamm_pack.batteries[battery]["offset"]
+        offsetter = pack.offsetter(pybamm_pack.batteries[battery]["offset"])
+        offsetter.add_offset_to_state_vectors(expr.expr)
+    end
+    tv_converter = pybamm2julia.JuliaConverter()
+    tv_converter.convert_tree_to_intermediate(expr)
+    tv_str = tv_converter.build_julia_code()
+
+    tv_str = pyconvert(String,tv_str)
+    tv = eval(Meta.parse(tv_str))
+    test_eval = Base.@invokelatest tv(sol[:,1])
+    size_return = size(test_eval)
+
+    this_arr = zeros(Np*Ns,length(sol.t),size_return[1])
+
+    for (i,battery) in enumerate(pybamm_pack.batteries)
+        expr = 0
+        if var_of_interest == "Current [A]"
+            base_expr = pybamm_pack.batteries[battery]["cell"].children[1].children[0]
+            expr = pybamm2julia.PybammJuliaFunction([sv],base_expr,"f",false)
+        else
+            base_expr = pybamm2julia.PybammJuliaFunction([sv],pybamm_pack.built_model.variables[var_of_interest],"f",false)
+            expr = pycopy.deepcopy(base_expr)
+            offset = pybamm_pack.batteries[battery]["offset"]
+            offsetter = pack.offsetter(pybamm_pack.batteries[battery]["offset"])
+            offsetter.add_offset_to_state_vectors(expr.expr)
+        end
+
+        tv_converter = pybamm2julia.JuliaConverter()
+        tv_converter.convert_tree_to_intermediate(expr)
+        tv_str = tv_converter.build_julia_code()
+
+        tv_str = pyconvert(String,tv_str)
+        tv = eval(Meta.parse(tv_str))
+    
+        for (j, t) in enumerate(sol.t)
+            V = tv(sol[:,j])
+            this_arr[i,j,:] .= V
+        end
+    end
+    saved_vars[var_of_interest] = this_arr
+end
