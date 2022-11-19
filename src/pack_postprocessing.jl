@@ -35,9 +35,9 @@ function get_pack_variables(pybamm_pack, sol, vars_of_interest)
             expr = 0
             if var_of_interest == "Current [A]"
                 base_expr = pybamm_pack.batteries[battery]["cell"].children[1].children[0]
-                expr = pybamm2julia.PybammJuliaFunction([sv],base_expr,"f",False)
+                expr = pybamm2julia.PybammJuliaFunction([sv],base_expr,"f",false)
             else
-                base_expr = pybamm2julia.PybammJuliaFunction([sv],pybamm_pack.built_model.variables[var_of_interest],"f",False)
+                base_expr = pybamm2julia.PybammJuliaFunction([sv],pybamm_pack.built_model.variables[var_of_interest],"f",false)
                 expr = pycopy.deepcopy(base_expr)
                 offset = pybamm_pack.batteries[battery]["offset"]
                 offsetter = pack.offsetter(pybamm_pack.batteries[battery]["offset"])

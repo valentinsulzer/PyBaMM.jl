@@ -10,10 +10,10 @@ pybamm2julia = pyimport("pybamm2julia")
 setup_circuit = pyimport("setup_circuit")
 pack = pyimport("pack")
 
-Np = 20
-Ns = 20
+Np = 5
+Ns = 5
 
-curr = 1.2
+curr = 3.25
 
 p = nothing 
 t = 0.0
