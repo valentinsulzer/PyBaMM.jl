@@ -8,7 +8,7 @@ plotly()
 pybamm = pyimport("pybamm")
 pybamm2julia = pyimport("pybamm2julia")
 setup_circuit = pyimport("setup_circuit")
-pybamm_pack = pyimport("pack")
+pack = pyimport("pack")
 
 
 Np = 3
@@ -27,7 +27,7 @@ model = pybamm.lithium_ion.DFN(name="DFN", options=options)
 
 netlist = setup_circuit.setup_circuit(Np, Ns, I=curr)
     
-    pybamm_pack = pybamm_pack.Pack(model, netlist, functional=functional, thermal=true, left_bc = "symmetry")
+    pybamm_pack = pack.Pack(model, netlist, functional=functional, thermal=true, left_bc = "symmetry")
     pybamm_pack.build_pack()
 
     timescale = pyconvert(Float64,pybamm_pack.timescale.evaluate())

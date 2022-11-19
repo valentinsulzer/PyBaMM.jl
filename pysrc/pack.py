@@ -89,6 +89,7 @@ class Pack(object):
         netlist,
         parameter_values=None,
         functional=False,
+        voltage_functional=False,
         thermal=False,
         build_jac=False,
         implicit=False,
@@ -96,7 +97,8 @@ class Pack(object):
         bottom_bc = "ambient",
         left_bc = "ambient",
         right_bc = "ambient",
-        distribution_params = None
+        distribution_params = None,
+        operating_mode = "CC"
     ):
         # this is going to be a work in progress for a while:
         # for now, will just do it at the julia level
@@ -107,10 +109,14 @@ class Pack(object):
         self.bottom_bc = bottom_bc
         self.left_bc = left_bc
         self.right_bc = right_bc
+        self._operating_mode = operating_mode
 
         self._implicit = implicit
 
         self.functional = functional
+        self.voltage_functional = voltage_functional
+        if self.voltage_functional:
+            self.voltage_func = None
         self.build_jac = build_jac
         self._thermal = thermal
 
@@ -256,6 +262,16 @@ class Pack(object):
     def get_new_terminal_voltage(self):
         symbol = deepcopy(self.built_model.variables["Terminal voltage [V]"])
         my_offsetter = offsetter(self.offset)
+        if self.voltage_functional:
+            sv = pybamm.StateVector(slice(0,self.len_cell_rhs+self.len_cell_algebraic))
+            if self.voltage_func is None:
+                if self._distribution_params is not None:
+                    ldp = list(self._distribution_params)
+                else:
+                    ldp = []
+                voltage_func = pybamm2julia.PybammJuliaFunction([sv, self.cell_current] + ldp, symbol, "voltage_func", True)
+                self.voltage_func = voltage_func
+            symbol = deepcopy(self.voltage_func)
         my_offsetter.add_offset_to_state_vectors(symbol)
         return symbol
 
@@ -411,6 +427,8 @@ class Pack(object):
                         expr = self._distribution_params[param].sample()
                         self._distribution_params[param].set_psuedo(self.batteries[desc]["cell"], expr)
                         self._distribution_params[param].set_psuedo(self.batteries[desc]["ics"], expr)
+                        if self.voltage_functional:
+                            self._distribution_params[param].set_psuedo(self.batteries[desc]["cell"], expr)
                         params.update({self._distribution_params[param] : expr})
                         
                 self.batteries[desc].update({"offset": self.offset})
@@ -533,14 +551,13 @@ class Pack(object):
                         voltage = self.batteries[
                             self.circuit_graph.edges[edge]["desc"]
                         ]["voltage"]
-                        if isinstance(self.unbuilt_model, pybamm.lithium_ion.SPM) or isinstance(self.unbuilt_model, pybamm.lithium_ion.SPMe):
+                        if isinstance(self.unbuilt_model, pybamm.lithium_ion.SPM) or isinstance(self.unbuilt_model, pybamm.lithium_ion.SPMe) or self.voltage_functional:
                             self.cell_current.set_psuedo(
                                     self.batteries[
                                         self.circuit_graph.edges[edge]["desc"]
                                     ]["voltage"],
                                     expr,
                                 )
-
                         if (
                             direction[0]
                             == self.circuit_graph.edges[edge]["positive_node"]
@@ -567,7 +584,10 @@ class Pack(object):
         # then loop through the current source voltages. Sum Currents.
         for i, curr_source in enumerate(curr_sources):
             currents = list(self.circuit_graph.edges[curr_source]["currents"])
-            expr = pybamm.Scalar(self.circuit_graph.edges[curr_source]["value"])
+            source_value = pybamm.Scalar(self.circuit_graph.edges[curr_source]["value"])
+            pack_voltage = self.circuit_graph.edges[curr_source]["voltage"]
+            #initialize the loop (0 will be optimized away)
+            expr = pybamm.Scalar(0)
             for current in currents:
                 if (
                     self.circuit_graph.edges[curr_source]["currents"][current][0]
@@ -576,7 +596,65 @@ class Pack(object):
                     expr = expr - current
                 else:
                     expr = expr + current
-            pack_equations.append(expr)
+            if self._operating_mode == "CC":
+                pack_equations.append(expr + source_value)
+            elif self._operating_mode == "CV":
+                pack_equations.append(pack_voltage - source_value)
+            elif self._operating_mode == "CP":
+                pack_equations.append((pack_voltage * expr) + source_value)
+            elif isinstance(self._operating_mode, pybamm.Experiment):
+                experiment = self._operating_mode
+                forcing_functions = []
+                termination_functions = []
+                for op_cond in experiment.operating_conditions:
+                    local_termination_expressions = []
+                    #Forcing Functions
+                    if op_cond["type"] == "power":
+                        source_value = pybamm.Scalar(op_cond["Power input [W]"])
+                        forcing_expression = ((pack_voltage * expr) + source_value)
+                    elif op_cond["type"] == "current":
+                        source_value = pybamm.Scalar(op_cond["Current input [A]"])
+                        forcing_expression = (expr + source_value)
+                    elif op_cond["type"] == "voltage":
+                        source_value = pybamm.Scalar(op_cond["Voltage input [V]"])
+                        forcing_expression = (pack_voltage - source_value)
+                    #Termination Conditions
+                    t = pybamm.Time()
+                    if op_cond["time"] is not None:
+                        max_t = pybamm.Scalar(op_cond["time"]) 
+                        time_event = max_t - t
+                        local_termination_expressions.append(time_event)
+                    if op_cond["events"] is not None:
+                        if "Current input [A]" in op_cond["events"]:
+                            curr_event = pybamm.AbsoluteValue(expr) - pybamm.Scalar(op_cond["events"]["Current input [A]"])
+                            local_termination_expressions.append(curr_event)
+                        if "Voltage input [V]" in op_cond["events"]:
+                            if op_cond["type"] == "power":
+                                inp = op_cond["Power input [W]"]
+                            elif op_cond["type"] == "current":
+                                inp = op_cond["Current input [A]"]
+                            else:
+                                raise NotImplementedError(
+                                    "voltage cutoff only implemented for power and current"
+                                )
+                            sign_begin = pybamm.Scalar(np.sign(inp))
+                            voltage_event = sign_begin * (pack_voltage - op_cond["events"]["Voltage input [V]"])
+                            local_termination_expressions.append(voltage_event)
+                    sv = pybamm.StateVector(slice(0,len(pack_equations) + 1))
+                    total_termination_expression = pybamm.numpy_concatenation(*local_termination_expressions)
+                    termination_function = pybamm2julia.PybammJuliaFunction([sv, t], total_termination_expression, "termination_function", False)
+                    forcing_function = pybamm2julia.PybammJuliaFunction([sv, t], forcing_expression, "forcing_function", True)
+                    forcing_functions.append(forcing_function)
+                    termination_functions.append(termination_function)
+                self.forcing_functions = forcing_functions
+                self.termination_functions = termination_functions
+                pack_equations.append(forcing_functions[0])
+
+
+                    
+                    
+
+                    
 
         # concatenate all the pack equations and return it.
         return pack_equations
