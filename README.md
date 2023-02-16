@@ -1,5 +1,7 @@
 # PyBaMM.jl
 
+> This repository is now archived and read-only. It is not expected to work in its current state.
+
 PyBaMM.jl is a common interface binding for the [PyBaMM](pybamm.org) Python battery modeling package. 
 It uses the [PythonCall.jl](https://github.com/cjdoris/PythonCall.jl) interop in order to retrieve the equations from python in a Julia-readable form.
 
